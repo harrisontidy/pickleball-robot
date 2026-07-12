@@ -32,7 +32,8 @@ Use paste plus a heat gun/hot plate for U2/U3/U4/U10. The large exposed pads nee
 
 | Refs | Exact part | What plugs in |
 |---|---|---|
-| J4, J5 | JST `B6B-PH-K-S(LF)(SN)` | your 6-wire GA25-370 motor/encoder cable; 2.00 mm pitch |
+| J4, J5 | JST `B6B-PH-K-S(LF)(SN)` | your 6-wire GA25-370 motor/encoder cable; 2.00 mm pitch; order red/black/yellow/green/blue/white |
+| J15, J16 | PCB solder pads from KiCad `SolderWire-1.5sqmm` footprint | 1.7 mm drill, 3.9 mm pad; separately solder the red/white motor-power wires here |
 | J10 | Samtec `TSW-108-07-G-S` | eight-pin 2.54 mm male header; accepts ordinary female Dupont wires to the Pi |
 | J12–J14 | Samtec `TSW-103-07-G-S` | ordinary 3-wire RC servo female plugs; 2.54 mm pitch |
 | J9 | Molex `39-30-1040` | Pi 5 V power harness; use the matching Mini-Fit Jr housing/crimps |

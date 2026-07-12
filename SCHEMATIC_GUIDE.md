@@ -211,7 +211,7 @@ Power both motor encoders from 3.3 V so level shifting is unnecessary. Buffer al
 
 ### Connections
 
-The encoder wires use pins 3–6 of the matching motor connector: `GND, 3V3, ENCA, ENCB`. Pins 1–2 are the motor wires.
+The confirmed J4/J5 cable order is: pin 1 red motor positive, pin 2 black encoder ground, pin 3 yellow encoder A, pin 4 green encoder B, pin 5 blue encoder +3.3 V, and pin 6 white motor negative. J15/J16 provide larger parallel through-hole solder pads for the red and white motor-power wires.
 
 ## Servo output connectors
 

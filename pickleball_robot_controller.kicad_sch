@@ -2,7 +2,7 @@
 	(version 20250114)
 	(generator "eeschema")
 	(generator_version "9.0")
-	(uuid "8d2b5b71-09f6-46bb-b42a-9ba811755f97")
+	(uuid "008f5f25-ee15-417c-9db4-b0659030e66e")
 	(paper "A4")
 	(title_block
 		(title "Pickleball Robot Controller — Hierarchical Overview")
@@ -20,7 +20,7 @@
 				(bold yes)
 			)
 		)
-		(uuid "82326fd9-2659-4f65-ab39-f5c0b2d470b8")
+		(uuid "2174b5ce-18a3-4d44-9160-f6712cd926b8")
 	)
 	(text "Global net labels connect the sheets. Open any sheet from the hierarchy panel."
 		(exclude_from_sim no)
@@ -30,7 +30,7 @@
 				(size 1.3 1.3)
 			)
 		)
-		(uuid "76b2d6b9-69d3-4f1c-a501-588991848c84")
+		(uuid "06428393-d87c-4597-8ca0-aecf344bceac")
 	)
 	(sheet
 		(at 25 40)
@@ -47,7 +47,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "51d40809-f3d1-4aea-8866-2d7951960549")
+		(uuid "20d892fc-4d98-4ba2-a401-05d52178402f")
 		(property "Sheetname" "01 Power and Pi"
 			(at 25 39.2884 0)
 			(effects
@@ -68,7 +68,7 @@
 		)
 		(instances
 			(project "pickleball_robot_controller"
-				(path "/8d2b5b71-09f6-46bb-b42a-9ba811755f97"
+				(path "/008f5f25-ee15-417c-9db4-b0659030e66e"
 					(page "2")
 				)
 			)
@@ -89,7 +89,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "8dfe4e71-4db2-4cc9-9b46-64225239459a")
+		(uuid "95e13a93-9db4-402a-9d81-aecf4608b8e1")
 		(property "Sheetname" "02 ESP32 and Pi UART"
 			(at 120 39.2884 0)
 			(effects
@@ -110,7 +110,7 @@
 		)
 		(instances
 			(project "pickleball_robot_controller"
-				(path "/8d2b5b71-09f6-46bb-b42a-9ba811755f97"
+				(path "/008f5f25-ee15-417c-9db4-b0659030e66e"
 					(page "3")
 				)
 			)
@@ -131,7 +131,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "4ddb46e0-14e8-4df6-a13e-e4948fb1e7d5")
+		(uuid "1c40ef27-3e58-449d-9829-9bb6eaae47b6")
 		(property "Sheetname" "03 Left Motor"
 			(at 25 89.2884 0)
 			(effects
@@ -152,7 +152,7 @@
 		)
 		(instances
 			(project "pickleball_robot_controller"
-				(path "/8d2b5b71-09f6-46bb-b42a-9ba811755f97"
+				(path "/008f5f25-ee15-417c-9db4-b0659030e66e"
 					(page "4")
 				)
 			)
@@ -173,7 +173,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "15bf7997-b47b-4d92-80bd-a2e891f0df2d")
+		(uuid "8d595fdd-897b-48d8-a370-0e8fa07f4a74")
 		(property "Sheetname" "04 Right Motor"
 			(at 120 89.2884 0)
 			(effects
@@ -194,7 +194,7 @@
 		)
 		(instances
 			(project "pickleball_robot_controller"
-				(path "/8d2b5b71-09f6-46bb-b42a-9ba811755f97"
+				(path "/008f5f25-ee15-417c-9db4-b0659030e66e"
 					(page "5")
 				)
 			)
@@ -215,7 +215,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "d424cfdd-62e1-4f18-97bc-c86eb7d5f70b")
+		(uuid "864b1d9d-3c29-4e09-b078-2ecdc851ad64")
 		(property "Sheetname" "05 Encoders"
 			(at 25 139.2884 0)
 			(effects
@@ -236,7 +236,7 @@
 		)
 		(instances
 			(project "pickleball_robot_controller"
-				(path "/8d2b5b71-09f6-46bb-b42a-9ba811755f97"
+				(path "/008f5f25-ee15-417c-9db4-b0659030e66e"
 					(page "6")
 				)
 			)
@@ -257,7 +257,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "b718a549-923c-4921-80fe-6f05d4046709")
+		(uuid "0ce4db9b-5952-4080-b5e7-e6de7282aadb")
 		(property "Sheetname" "06 Arm Servos"
 			(at 120 139.2884 0)
 			(effects
@@ -278,7 +278,7 @@
 		)
 		(instances
 			(project "pickleball_robot_controller"
-				(path "/8d2b5b71-09f6-46bb-b42a-9ba811755f97"
+				(path "/008f5f25-ee15-417c-9db4-b0659030e66e"
 					(page "7")
 				)
 			)

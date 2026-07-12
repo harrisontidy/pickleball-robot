@@ -160,7 +160,12 @@ def motor_sheet(filename,title,num,u,j,prefix,xgpio):
     for pin,net in [(3,"VBAT_SW"),(12,"VBAT_SW"),(18,"GND"),(26,"GND"),(4,ina),(10,inb),(7,pwm),(6,"GND"),(5,"MOTOR_DIAG"),(9,"MOTOR_DIAG"),(8,cs),(1,prefix+"_OUTA"),(15,prefix+"_OUTB")]: m.net(u,pin,net)
     m.nc(u,11)
     m.part("Connector_Generic:Conn_01x06",j,prefix+" MOTOR + ENCODER",235,105,"Connector_JST:JST_PH_B6B-PH-K_1x06_P2.00mm_Vertical")
-    for pin,net in [(1,prefix+"_OUTA"),(2,prefix+"_OUTB"),(3,"GND"),(4,"3V3"),(5,ea),(6,eb)]: m.net(j,pin,net)
+    # Exact cable order confirmed from the physical motor harness.
+    for pin,net in [(1,prefix+"_OUTA"),(2,"GND"),(3,ea),(4,eb),(5,"3V3"),(6,prefix+"_OUTB")]: m.net(j,pin,net)
+    pad_ref="J15" if prefix=="LEFT" else "J16"
+    m.part("Connector_Generic:Conn_01x02",pad_ref,prefix+" MOTOR LARGE SOLDER PADS",300,105,
+           "Connector_Wire:SolderWire-1.5sqmm_1x02_P7.8mm_D1.7mm_OD3.9mm")
+    m.net(pad_ref,1,prefix+"_OUTA"); m.net(pad_ref,2,prefix+"_OUTB")
     cap="C12" if prefix=="LEFT" else "C15"; rcs="R7" if prefix=="LEFT" else "R14"; base=80 if prefix=="LEFT" else 90
     m.part("Device:C_Polarized",cap,"470 uF 25 V",175,55,"Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"); m.two(cap,"VBAT_SW","GND")
     m.part("Device:R",rcs,"1 k current sense",175,155,"Resistor_SMD:R_0805_2012Metric"); m.two(rcs,cs,"GND")
@@ -168,7 +173,8 @@ def motor_sheet(filename,title,num,u,j,prefix,xgpio):
         rr=f"R{base+off}"; m.part("Device:R",rr,"100 k pulldown",45,75+off*32,"Resistor_SMD:R_0805_2012Metric"); m.two(rr,net,"GND")
     rr=f"R{base+3}"; m.part("Device:R",rr,"10 k fault pullup",45,180,"Resistor_SMD:R_0805_2012Metric"); m.two(rr,"MOTOR_DIAG","3V3")
     cc=f"C{base}"; m.part("Device:C",cc,"10 nF current filter",175,190,"Capacitor_SMD:C_0805_2012Metric"); m.two(cc,cs,"GND")
-    m.text("J connector pinout: 1 red motor A; 2 white motor B; 3 black GND; 4 blue +3V3; 5 yellow encoder A; 6 green encoder B.",30,240,1.3)
+    m.text("J4/J5 cable: 1 RED motor+; 2 BLACK encoder GND; 3 YELLOW encoder A; 4 GREEN encoder B; 5 BLUE encoder +3V3; 6 WHITE motor-.",30,235,1.25)
+    m.text(f"{pad_ref}: large 1.7 mm through-holes in parallel with pins 1/6 for separately soldered red and white motor-power wires.",30,245,1.25)
     m.save()
 
 motor_sheet("03_left_motor.kicad_sch","Left Wheel Motor Driver",3,"U2","J4","LEFT",("GPIO25_L_PWM","GPIO26_L_INA","GPIO27_L_INB","SENSOR_VP_GPIO36","LEFT_ENC_A_RAW","LEFT_ENC_B_RAW"))

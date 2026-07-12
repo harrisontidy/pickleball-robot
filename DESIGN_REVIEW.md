@@ -3,7 +3,7 @@
 ## What is now on the schematic
 
 - 3S LiPo XT60 input, external 15 A blade fuse position, latching E-stop position, TVS clamp, bulk capacitor, and battery-voltage divider.
-- Two protected VNH5019A-E wheel H-bridges with one six-pin JST-GH motor/encoder connector each, local bulk capacitors, control pull-downs, fault network, and current-sense filtering.
+- Two protected VNH5019A-E wheel H-bridges with one six-pin JST-PH motor/encoder connector each plus separate large red/white motor-power solder pads, local bulk capacitors, control pull-downs, fault network, and current-sense filtering.
 - ESP32-PICO-KIT V4.1 removable-carrier footprint using the confirmed 17.78 mm socket-row spacing.
 - Raspberry Pi 3.3 V UART/control header plus a dedicated **TPS54560B 5 V / 5 A** Pi/Hailo buck circuit and a 2x2 Mini-Fit Jr output connector.
 - Separate LM2596S 5 V control rail for the ESP32/logic only.

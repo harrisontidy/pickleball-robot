@@ -55,6 +55,8 @@
 "J12","MAIN SWING 25 kg","Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical","1",""
 "J13","ELBOW MG996R","Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical","1",""
 "J14","WRIST MG90S","Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical","1",""
+"J15","LEFT MOTOR LARGE SOLDER PADS","Connector_Wire:SolderWire-1.5sqmm_1x02_P7.8mm_D1.7mm_OD3.9mm","1",""
+"J16","RIGHT MOTOR LARGE SOLDER PADS","Connector_Wire:SolderWire-1.5sqmm_1x02_P7.8mm_D1.7mm_OD3.9mm","1",""
 "L1","33 uH 4 A","Inductor_SMD:L_Sunlord_MWSA1265S","1",""
 "L2","XAL7070-682MEC 6.8 uH","Inductor_SMD:L_Coilcraft_XAL7070-XXX","1",""
 "L3","XAL7070-682MEC 6.8 uH","Inductor_SMD:L_Coilcraft_XAL7070-XXX","1",""
