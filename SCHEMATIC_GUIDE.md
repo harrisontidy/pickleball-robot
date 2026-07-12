@@ -215,7 +215,7 @@ The confirmed J4/J5 cable order is: pin 1 red motor positive, pin 2 black encode
 
 ## Servo output connectors
 
-J12–J14 use ordinary unshrouded **2.54 mm male 1x3 headers**, not JST-XH. Standard hobby-servo plugs fit these directly. The board order is `GND / 6V / PWM`; use the silkscreen and check wire colours before connecting power.
+J12–J14 use ordinary unshrouded **2.54 mm male 1x3 headers**, not JST-XH. Standard hobby-servo plugs fit these directly. The board order is `GND / power / PWM`. J12 receives regulated 8.4 V for the Miuzei 25KG 270° main-swing servo; J13/J14 receive regulated 6 V for the MG996R and MG90S.
 
 ```text
 encoder signal -> 1k series -> FILTER_NODE -> one U4 input

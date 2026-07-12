@@ -6,11 +6,11 @@ This is the build choice for the current schematic. Small passives are **0805**,
 
 | Refs | Exact part | Why |
 |---|---|---|
-| U4, U10 | TI `TPS54560BDDA` | 5 A buck regulator, PowerPAD underside pad |
+| U4, U10, U11 | TI `TPS54560BDDA` | 5 A buck regulator, PowerPAD underside pad |
 | U2, U3 | ST `VNH5019A-E` | wheel H-bridge, thermal pad |
 | U5 | NXP `PCA9685PW,118` | TSSOP-28 servo PWM controller |
-| L2, L3 | Coilcraft `XAL7070-682MEC` | 6.8 uH shielded 7 mm power inductor |
-| D9, D10 | Diodes Inc. `B560C-13-F` | 60 V, 5 A Schottky buck diode, SMC package |
+| L2, L3, L4 | Coilcraft `XAL7070-682MEC` | 6.8 uH shielded 7 mm power inductor |
+| D9, D10, D11 | Diodes Inc. `B560C-13-F` | 60 V, 5 A Schottky buck diode, SMC package |
 
 Use paste plus a heat gun/hot plate for U2/U3/U4/U10. The large exposed pads need good solder and thermal vias. Everything else below is practical with a normal iron and flux.
 
@@ -26,6 +26,7 @@ Use paste plus a heat gun/hot plate for U2/U3/U4/U10. The large exposed pads nee
 | R31 | Yageo `RC0805FR-07442KL` | 442 kΩ, 1%, 0805 |
 | R32, R106 | Yageo `RC0805FR-0790R9L` | 90.9 kΩ, 1%, 0805 |
 | R105 | Yageo `RC0805FR-07590KL` | 590 kΩ, 1%, 0805 |
+| R109 | Yageo `RC0805FR-07866KL` | 866 kΩ, 1%, 0805; sets the main-servo rail to about 8.42 V |
 | R33, R107 | Yageo `RC0805FR-0710K2L` | 10.2 kΩ, 1%, 0805 |
 
 ## Connectors you plug into

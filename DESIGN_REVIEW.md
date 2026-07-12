@@ -8,7 +8,7 @@
 - Raspberry Pi 3.3 V UART/control header plus a dedicated **TPS54560B 5 V / 5 A** Pi/Hailo buck circuit and a 2x2 Mini-Fit Jr output connector.
 - Separate LM2596S 5 V control rail for the ESP32/logic only.
 - Encoder headers with pull-ups, RC filters, and Schmitt buffers.
-- PCA9685 servo controller, an on-board TPS54560B 6 V / 5 A servo buck, three servo headers, power protection/bulk capacitance, and four clear status LEDs.
+- PCA9685 servo controller, an on-board 8.4 V / 5 A TPS54560B rail for the Miuzei main servo, a separate 6 V / 5 A TPS54560B rail for the MG996R/MG90S, three servo headers, protection/bulk capacitance, and rail-status LEDs.
 
 ## Design checks completed
 

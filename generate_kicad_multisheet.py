@@ -6,6 +6,7 @@ import uuid
 from kicad_sch_api import create_schematic
 
 ROOT = Path(__file__).resolve().parent
+TOTAL_SHEETS = 7
 
 class Sheet:
     def __init__(self, filename, title, number):
@@ -13,7 +14,7 @@ class Sheet:
         self.s = create_schematic(filename.removesuffix(".kicad_sch"))
         self.s.set_paper_size("A3")
         self.s.set_title_block(title=title, date="2026-07-12", rev="R2-MULTISHEET",
-                               company="Harrison", comments={1: f"Sheet {number} of 6"})
+                               company="Harrison", comments={1: f"Sheet {number} of {TOTAL_SHEETS}"})
         self.labels = []
 
     def part(self, lib, ref, value, x, y, footprint="", rotation=0.0):
@@ -226,22 +227,51 @@ s.part("Device:C","C43","10 uF 10 V",160,210,"Capacitor_SMD:C_0805_2012Metric");
 s.part("Device:R","R50","4.7 k",195,185,"Resistor_SMD:R_0805_2012Metric"); s.two("R50","GPIO21_I2C_SDA","3V3")
 s.part("Device:R","R51","4.7 k",195,210,"Resistor_SMD:R_0805_2012Metric"); s.two("R51","GPIO22_I2C_SCL","3V3")
 s.part("Device:R","R52","10 k",195,235,"Resistor_SMD:R_0805_2012Metric"); s.two("R52","GPIO2_SERVO_OE","3V3")
-def servo(idx,ref,label,x):
+def servo(idx,ref,label,x,power_net="SERVO_6V"):
     raw=f"SERVO{idx}_PWM_RAW"; sig=f"SERVO{idx}_PWM"; rser=f"R{60+idx*2}"; rpd=f"R{61+idx*2}"
     s.part("Device:R",rser,"220 R",x,185,"Resistor_SMD:R_0805_2012Metric"); s.two(rser,raw,sig)
     s.part("Device:R",rpd,"10 k pulldown",x,215,"Resistor_SMD:R_0805_2012Metric"); s.two(rpd,sig,"GND")
     s.part("Connector_Generic:Conn_01x03",ref,label,x,255,"Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical")
-    s.net(ref,1,"GND"); s.net(ref,2,"SERVO_6V"); s.net(ref,3,sig)
-servo(0,"J12","MAIN SWING 25 kg",255); servo(1,"J13","ELBOW MG996R",315); servo(2,"J14","WRIST MG90S",375)
-s.text("Servo header order: pin 1 GND, pin 2 regulated +6 V, pin 3 PWM.",240,285,1.3)
+    s.net(ref,1,"GND"); s.net(ref,2,power_net); s.net(ref,3,sig)
+servo(0,"J12","MIUZEI 25KG 270 DEG",255,"MAIN_SERVO_8V4"); servo(1,"J13","ELBOW MG996R",315); servo(2,"J14","WRIST MG90S",375)
+s.text("Header order: pin 1 GND, pin 2 power, pin 3 PWM. J12 = 8.4 V; J13/J14 = 6 V.",225,285,1.3)
 flags(s,[("#FLG06","SERVO_6V")],285)
 s.save()
+
+# -------------------------------------------------------------- Sheet 7
+h=Sheet("07_main_servo_8v4.kicad_sch","Miuzei Main-Swing Servo 8.4 V Power Rail",7)
+h.text("DEDICATED 8.4 V / 5 A BUCK FOR MIUZEI 25KG 270 DEG SERVO",20,18,2.0,True)
+h.part("Regulator_Switching:TPS54560BDDA","U11","TPS54560BDDA",95,75,"Package_SO:TI_SO-PowerPAD-8_ThermalVias")
+for pin,net in [(1,"MAIN8_BOOT"),(2,"VBAT_SW"),(3,"VBAT_SW"),(4,"MAIN8_RT"),(5,"MAIN8_FB"),(6,"MAIN8_COMP"),(7,"GND"),(8,"MAIN8_SW"),(9,"GND")]: h.net("U11",pin,net)
+h.part("Device:C","C52","100 nF",145,42,"Capacitor_SMD:C_0805_2012Metric"); h.two("C52","MAIN8_BOOT","MAIN8_SW")
+h.part("Device:D_Schottky","D11","B560C-13-F",145,75,"Diode_SMD:D_SMC"); h.two("D11","GND","MAIN8_SW")
+h.part("Device:L","L4","XAL7070-682MEC 6.8 uH",195,75,"Inductor_SMD:L_Coilcraft_XAL7070-XXX"); h.two("L4","MAIN8_SW","MAIN8_RAW")
+for i,ref in enumerate(["C53","C54","C55","C56"]):
+    h.part("Device:C",ref,"2.2 uF 25 V",30+(i%2)*25,60+(i//2)*35,"Capacitor_SMD:C_0805_2012Metric"); h.two(ref,"VBAT_SW","GND")
+h.part("Device:R","R108","243 k",70,135,"Resistor_SMD:R_0805_2012Metric"); h.two("R108","MAIN8_RT","GND")
+h.part("Device:R","R109","866 k 1%",120,135,"Resistor_SMD:R_0805_2012Metric"); h.two("R109","MAIN8_RAW","MAIN8_FB")
+h.part("Device:R","R110","90.9 k 1%",165,135,"Resistor_SMD:R_0805_2012Metric"); h.two("R110","MAIN8_FB","GND")
+h.part("Device:R","R111","10.2 k",210,135,"Resistor_SMD:R_0805_2012Metric"); h.two("R111","MAIN8_COMP","MAIN8_COMP_RC")
+h.part("Device:C","C57","4.7 nF",250,120,"Capacitor_SMD:C_0805_2012Metric"); h.two("C57","MAIN8_COMP_RC","GND")
+h.part("Device:C","C58","47 pF",250,150,"Capacitor_SMD:C_0805_2012Metric"); h.two("C58","MAIN8_COMP","GND")
+h.part("Device:C_Polarized","C59","220 uF 16 V LOW ESR",285,65,"Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"); h.two("C59","MAIN8_RAW","GND")
+h.part("Device:C","C60","1 uF 16 V",285,100,"Capacitor_SMD:C_0805_2012Metric"); h.two("C60","MAIN8_RAW","GND")
+h.part("Device:Fuse","F4","5 A MAIN SERVO",330,75,"Fuse:Fuse_1206_3216Metric"); h.two("F4","MAIN8_RAW","MAIN_SERVO_8V4")
+h.part("Device:D_TVS","D12","SMBJ10A",370,60,"Diode_SMD:D_SMB"); h.two("D12","GND","MAIN_SERVO_8V4")
+h.part("Device:C_Polarized","C61","1000 uF 16 V LOW ESR",370,100,"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm"); h.two("C61","MAIN_SERVO_8V4","GND")
+h.part("Connector_Generic:Conn_01x02","J17","8.4 V TEST / AUX OUT",330,145,"TerminalBlock:TerminalBlock_MaiXu_MX126-5.0-02P_1x02_P5.00mm"); h.net("J17",1,"MAIN_SERVO_8V4"); h.net("J17",2,"GND")
+h.part("Device:R","R112","2.2 k",300,190,"Resistor_SMD:R_0805_2012Metric"); h.two("R112","MAIN_SERVO_8V4","LED_MAIN8")
+h.part("Device:LED","D13","PURPLE 8.4 V",350,190,"LED_SMD:LED_0805_2012Metric"); h.two("D13","LED_MAIN8","GND")
+h.text("U11 uses 866 k / 90.9 k feedback resistors for approximately 8.42 V. J12 is the only servo powered from this rail.",25,230,1.3)
+h.text("J13 MG996R and J14 MG90S remain on the separate regulated 6 V rail.",25,240,1.3)
+flags(h,[("#FLG08","MAIN_SERVO_8V4")],270)
+h.save()
 
 # --------------------------------------------------------------- root sheet
 root=create_schematic("pickleball_robot_controller")
 root.set_paper_size("A4")
 root.set_title_block(title="Pickleball Robot Controller — Hierarchical Overview",date="2026-07-12",rev="R2-MULTISHEET",company="Harrison")
-root.add_text("PICKLEBALL ROBOT CONTROLLER — SIX READABLE KICAD SHEETS",(25,20),size=2.2,bold=True)
+root.add_text("PICKLEBALL ROBOT CONTROLLER — SEVEN READABLE KICAD SHEETS",(25,20),size=2.2,bold=True)
 sheet_defs=[
     ("01 Power and Pi","01_power_and_pi.kicad_sch",(25,40)),
     ("02 ESP32 and Pi UART","02_esp32_and_pi.kicad_sch",(120,40)),
@@ -249,11 +279,12 @@ sheet_defs=[
     ("04 Right Motor","04_right_motor.kicad_sch",(120,90)),
     ("05 Encoders","05_encoder_inputs.kicad_sch",(25,140)),
     ("06 Arm Servos","06_arm_servos.kicad_sch",(120,140)),
+    ("07 Main Servo 8.4V","07_main_servo_8v4.kicad_sch",(72,185)),
 ]
 sheet_ids=[]
 for i,(name,file,pos) in enumerate(sheet_defs,1):
     sheet_ids.append(root.add_sheet(name,file,pos,(70,28),project_name="pickleball_robot_controller",page_number=str(i+1)))
-root.add_text("Global net labels connect the sheets. Open any sheet from the hierarchy panel.",(35,190),size=1.3)
+root.add_text("Global net labels connect the sheets. Open any sheet from the hierarchy panel.",(35,225),size=1.3)
 root.save_as(ROOT/"pickleball_robot_controller.kicad_sch",preserve_format=False)
 
 # kicad-sch-api creates each child as a standalone project. Re-home every child

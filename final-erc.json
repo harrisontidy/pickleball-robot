@@ -1,4 +1,4 @@
-ERC report (2026-07-12T14:19:38, Encoding UTF8)
+ERC report (2026-07-12T14:27:48, Encoding UTF8)
 Report includes: Errors, Warnings
 
 ***** Sheet /
@@ -14,6 +14,8 @@ Report includes: Errors, Warnings
 ***** Sheet /05 Encoders/
 
 ***** Sheet /06 Arm Servos/
+
+***** Sheet /07 Main Servo 8.4V/
 
  ** ERC messages: 0  Errors 0  Warnings 0
 

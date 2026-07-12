@@ -2,7 +2,7 @@
 	(version 20250114)
 	(generator "eeschema")
 	(generator_version "9.0")
-	(uuid "008f5f25-ee15-417c-9db4-b0659030e66e")
+	(uuid "6e592ef6-5e2f-4d87-a569-afbad47f123a")
 	(paper "A4")
 	(title_block
 		(title "Pickleball Robot Controller — Hierarchical Overview")
@@ -11,7 +11,7 @@
 		(company "Harrison")
 	)
 	(lib_symbols)
-	(text "PICKLEBALL ROBOT CONTROLLER — SIX READABLE KICAD SHEETS"
+	(text "PICKLEBALL ROBOT CONTROLLER — SEVEN READABLE KICAD SHEETS"
 		(exclude_from_sim no)
 		(at 25 20 0.0000)
 		(effects
@@ -20,17 +20,17 @@
 				(bold yes)
 			)
 		)
-		(uuid "2174b5ce-18a3-4d44-9160-f6712cd926b8")
+		(uuid "69f43d6c-767f-47c0-95db-128f99a3d5b4")
 	)
 	(text "Global net labels connect the sheets. Open any sheet from the hierarchy panel."
 		(exclude_from_sim no)
-		(at 35 190 0.0000)
+		(at 35 225 0.0000)
 		(effects
 			(font
 				(size 1.3 1.3)
 			)
 		)
-		(uuid "06428393-d87c-4597-8ca0-aecf344bceac")
+		(uuid "c6ea3498-716e-47ce-8b6f-72b809c4077f")
 	)
 	(sheet
 		(at 25 40)
@@ -47,7 +47,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "20d892fc-4d98-4ba2-a401-05d52178402f")
+		(uuid "b0106acc-9278-4d0d-9b28-b74511dbdec4")
 		(property "Sheetname" "01 Power and Pi"
 			(at 25 39.2884 0)
 			(effects
@@ -68,7 +68,7 @@
 		)
 		(instances
 			(project "pickleball_robot_controller"
-				(path "/008f5f25-ee15-417c-9db4-b0659030e66e"
+				(path "/6e592ef6-5e2f-4d87-a569-afbad47f123a"
 					(page "2")
 				)
 			)
@@ -89,7 +89,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "95e13a93-9db4-402a-9d81-aecf4608b8e1")
+		(uuid "c9fec711-2c8a-47af-8115-8afd16fd9e0a")
 		(property "Sheetname" "02 ESP32 and Pi UART"
 			(at 120 39.2884 0)
 			(effects
@@ -110,7 +110,7 @@
 		)
 		(instances
 			(project "pickleball_robot_controller"
-				(path "/008f5f25-ee15-417c-9db4-b0659030e66e"
+				(path "/6e592ef6-5e2f-4d87-a569-afbad47f123a"
 					(page "3")
 				)
 			)
@@ -131,7 +131,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "1c40ef27-3e58-449d-9829-9bb6eaae47b6")
+		(uuid "529e9ee9-916a-4fad-b2c5-17d59542984c")
 		(property "Sheetname" "03 Left Motor"
 			(at 25 89.2884 0)
 			(effects
@@ -152,7 +152,7 @@
 		)
 		(instances
 			(project "pickleball_robot_controller"
-				(path "/008f5f25-ee15-417c-9db4-b0659030e66e"
+				(path "/6e592ef6-5e2f-4d87-a569-afbad47f123a"
 					(page "4")
 				)
 			)
@@ -173,7 +173,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "8d595fdd-897b-48d8-a370-0e8fa07f4a74")
+		(uuid "a736cc3b-8b4d-4078-bb87-c2462dd15f2d")
 		(property "Sheetname" "04 Right Motor"
 			(at 120 89.2884 0)
 			(effects
@@ -194,7 +194,7 @@
 		)
 		(instances
 			(project "pickleball_robot_controller"
-				(path "/008f5f25-ee15-417c-9db4-b0659030e66e"
+				(path "/6e592ef6-5e2f-4d87-a569-afbad47f123a"
 					(page "5")
 				)
 			)
@@ -215,7 +215,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "864b1d9d-3c29-4e09-b078-2ecdc851ad64")
+		(uuid "b3fd9442-37f8-4c36-9804-4d76475c9e42")
 		(property "Sheetname" "05 Encoders"
 			(at 25 139.2884 0)
 			(effects
@@ -236,7 +236,7 @@
 		)
 		(instances
 			(project "pickleball_robot_controller"
-				(path "/008f5f25-ee15-417c-9db4-b0659030e66e"
+				(path "/6e592ef6-5e2f-4d87-a569-afbad47f123a"
 					(page "6")
 				)
 			)
@@ -257,7 +257,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "0ce4db9b-5952-4080-b5e7-e6de7282aadb")
+		(uuid "5a770239-af41-4ce6-bf1c-08394b2744ee")
 		(property "Sheetname" "06 Arm Servos"
 			(at 120 139.2884 0)
 			(effects
@@ -278,8 +278,50 @@
 		)
 		(instances
 			(project "pickleball_robot_controller"
-				(path "/008f5f25-ee15-417c-9db4-b0659030e66e"
+				(path "/6e592ef6-5e2f-4d87-a569-afbad47f123a"
 					(page "7")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 72 185)
+		(size 70 28)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "62e4561a-3ab6-4b7a-8da9-aac3417f3fa1")
+		(property "Sheetname" "07 Main Servo 8.4V"
+			(at 72 184.2884 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "07_main_servo_8v4.kicad_sch"
+			(at 72 213.5846 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "pickleball_robot_controller"
+				(path "/6e592ef6-5e2f-4d87-a569-afbad47f123a"
+					(page "8")
 				)
 			)
 		)
