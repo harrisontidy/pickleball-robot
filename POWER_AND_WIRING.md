@@ -1,52 +1,58 @@
 # Power and wiring plan
 
-Use one 3S LiPo battery. Do not add a second battery for the Raspberry Pi.
+## Power tree
 
 ```text
-3S LiPo (XT60)
-  |
-  +-- 15 A fuse + emergency stop --> wheel-motor rail --> VNH5019 drivers
-  |
-  +-- 5 V / 5 A buck regulator --> Raspberry Pi 5 + Hailo
-  |
-  +-- 5 V / 1 A buck regulator --> ESP32 + encoder logic + PCA9685 logic
-  |
-  +-- 8.4 V / 5 A regulator --> Miuzei 25KG main-swing servo only
-  |
-  +-- 6 V / 5 A regulator --> MG996R elbow + MG90S wrist
+3S LiPo XT60
+  -> F1 15 A main fuse -> VBAT_SW
+       -> U1 5 V logic -> ESP32 / control
+       -> U4 5.1 V -> F3 5 A -> J9 -> Raspberry Pi 5
+       -> J18 external latching E-stop loop -> ACT_VBAT
+            -> F5 -> left VNH5019 -> left motor
+            -> F6 -> right VNH5019 -> right motor
+            -> U10 6 V -> F2 -> MG996R + MG90S
+            -> U11 8.4 V -> F4 -> Miuzei main servo
 ```
 
-The Pi must use its own 5 V / 5 A regulator because the board's small LM2596S logic converter is only for the ESP32, encoders, LEDs, and PCA9685. A Pi 5 plus Hailo can need substantially more current than that small rail can safely supply.
+The E-stop removes wheel and servo energy while leaving the Pi/ESP alive to log the event and shut down cleanly. J18 is a real series connection: actuators remain off if the external switch is not connected/closed.
 
-This revision includes that regulator on the PCB: **U4, TPS54560BDDA**, a 4.5–60 V, 5 A buck controller with its external diode, inductor, feedback, compensation, input capacitors, output capacitors, output fuse, and Mini-Fit Jr Pi connector. The 12 V nominal → 5 V / 5 A component values follow TI's documented reference circuit. The Pi rail is `PI_5V`; it is protected by F3 and must only feed the Pi/Hailo branch.
+`ACTUATOR_ENABLE` from Raspberry Pi GPIO17 must be driven high before U10/U11 start. It defaults low. Wheel drivers remain electrically powered after J18 closes, but their PWM/INA/INB inputs have firm hardware pull-downs.
 
-The PCB has two servo rails. U11 makes **8.4 V / 5 A** for the Miuzei 25KG 270° main-swing servo on J12. U10 makes **6 V / 5 A** for the MG996R elbow on J13 and MG90S wrist on J14. Do not put raw 3S battery voltage directly into any servo.
+## Battery limits
 
-The arm servo rail also needs its own **regulated** 6 V, high-current supply. Do not attach the 3S LiPo directly to the servo connectors.
+The current battery is 3S: 12.6 V full, 11.1 V nominal. A larger-capacity 3S pack is compatible if polarity is correct, its connector/wiring can safely supply the robot, and it is charged with a proper balance charger. A higher C rating does not force current into the robot; it increases how much fault current the pack can supply, making fusing more important.
 
-## Initial wire sizes
+The board measures battery voltage but does not yet provide a true hardware 3S undervoltage cutoff. Do not rely on the TPS54560 internal UVLO; it is far below a safe 3S discharge voltage. Add a suitable battery protector/supervisor or stop the robot conservatively in software while developing.
 
-| Connection | Initial wire | Notes |
-|---|---|---|
-| Battery XT60 to fuse/E-stop/distribution | 14 AWG silicone | keep short |
-| Distribution to each wheel driver | 16 AWG silicone | twist each motor-pair cable |
-| Driver to each GA25-370 motor | 18 AWG silicone | short run preferred |
-| 6 V servo regulator to servo distribution | 14–16 AWG silicone | high current, short run |
-| Individual standard servo power lead | 20–22 AWG | use the supplied leads only for short runs |
-| Pi 5 V regulator to Pi | 18–20 AWG | short, low-resistance cable |
-| ESP32/logic rail | 24–26 AWG | low current |
-| Encoder/UART/I2C signal wires | 26–28 AWG | keep away from motor wires |
+## External wire starting points
 
-These are conservative starting values. Measure the actual wheel-motor stall current before finalizing the fuse, connectors, and PCB copper widths.
+| Path | Suggested wire |
+|---|---|
+| XT60, F1, J18, main distribution | 14 AWG silicone |
+| Motor red/white to J15/J16 | 18 AWG, twisted pair |
+| Pi power, two 5 V + two GND contacts | 18–20 AWG |
+| Servo power/ground | 20–22 AWG, sized for the actual lead/connector |
+| Encoder, PWM, UART, I2C | 24–26 AWG |
 
-## PCB copper starting point
+Twist each motor power pair. Keep it physically away from encoder, UART, camera, and antenna wiring. Fit the specified 100 nF capacitor directly across each motor's power terminals.
 
-- Prefer a four-layer board with a solid ground plane and 2 oz outer copper.
-- Battery/motor/servo pours: at least 5–8 mm wide wherever space allows; use copper pours instead of narrow traces.
-- Per-wheel motor paths: at least 3–4 mm wide on 2 oz outer copper, with extra copper around each VNH5019.
-- Pi 5 V path: at least 3–4 mm wide on 2 oz outer copper.
-- ESP32 and signal traces: 0.25–0.3 mm is fine.
-- Use multiple vias in parallel when high-current paths must change layers.
-- Keep motor and servo returns away from the ESP32/Pi logic ground paths; join them at the battery/distribution star point.
+## PCB current routing starting points
 
-Do not finalize this layout until the wheel-motor stall current has been measured and the two buck regulators have been checked against their manufacturer layout guidance.
+Use a four-layer, preferably 2 oz outer-copper board. Width depends on copper thickness, layer, airflow, length, and allowed temperature rise, so final values must be calculated in the PCB tool/board-house calculator.
+
+- Use pours for `VBAT_SW`, `ACT_VBAT`, motor outputs, Pi 5 V, and servo rails.
+- Keep every motor and buck high-current loop short.
+- Give each VNH5019 exposed pad its own same-net copper and thermal vias; pads 31/32/33 are not interchangeable.
+- Place the ground return star near the battery distribution, with logic returns separated from actuator pulses until that point.
+- Use at least two vias in parallel whenever a multi-amp rail changes layers; more are normally appropriate.
+- Keep switch-node copper as small as possible and never route feedback/ADC/encoder traces through it.
+
+## First-power procedure
+
+1. Inspect polarity, solder bridges, exposed-pad alignment, and connector pin 1.
+2. Leave Pi, ESP32 carrier, motors, encoders, and servos disconnected.
+3. Power from a current-limited bench supply at 9–12 V through a small temporary fuse.
+4. Verify 5 V logic, then 5.1 V Pi, 6 V servo, and 8.4 V servo rails at their test points with dummy loads.
+5. Check regulator startup, ripple, switch node, and temperature before connecting electronics.
+6. Test one motor driver with its wheel unloaded, then stalled only long enough for a controlled current measurement.
+7. Connect the Pi and servos last. Never connect Pi USB-C power and J9 power simultaneously.

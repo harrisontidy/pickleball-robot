@@ -1,283 +1,113 @@
-# Pickleball Robot Controller — Discrete-Component Schematic Guide
+# Pickleball robot controller schematic guide
 
-Revision target: controller PCB R1, KiCad 10
+This guide describes revision **R2-MULTISHEET**. The source of truth is `generate_kicad_multisheet.py`; the generated KiCad project is `pickleball_robot_controller.kicad_pro`.
 
-This design uses component ICs and passives on the custom PCB. The ESP32-PICO-KIT V4.1 remains a removable controller board because it is hardware already owned. There are no plug-in buck or motor-driver modules.
+## Sheet map
 
-## Design ratings
+1. `01_power_and_pi.kicad_sch` — 3S battery input, main protection, real E-stop loop, battery ADC, 5 V logic supply, and 5.1 V Raspberry Pi supply.
+2. `02_esp32_and_pi.kicad_sch` — ESP32-PICO-KIT V4.1 carrier, Pi UART/control header, fault aggregation, optional I2C links, status LEDs, and debug points.
+3. `03_left_motor.kicad_sch` — left VNH5019 driver, branch fuse, current-sense protection, motor/encoder connector, and large motor-wire pads.
+4. `04_right_motor.kicad_sch` — right channel, matching sheet 3.
+5. `05_encoder_inputs.kicad_sch` — filtered encoder 3.3 V rail, cable resistors, four Schmitt buffers, local bypass capacitors, and test points.
+6. `06_arm_servos.kicad_sch` — 6 V servo buck, PCA9685, and three independent PWM outputs.
+7. `07_main_servo_8v4.kicad_sch` — dedicated 8.4 V rail for the Miuzei main-swing servo.
 
-- Battery: 3S LiPo, 9–12.6 V operating range, XT60.
-- Wheel motors: two 12 V GA25-370 motors.
-- Provisional stall current: 5 A each, 10 A combined.
-- Main fuse: external 15 A automotive blade fuse close to battery.
-- Motor driver PWM: 15–20 kHz.
-- Logic rail: regulated 5 V; ESP32 board creates its own 3.3 V rail.
+## Canonical ESP32 pin map
 
-## Sheet 1 — Battery input and protection
-
-### Parts
-
-| Ref | Part/value | Package | Purpose |
-|---|---|---|---|
-| J1 | XT60PW-M PCB connector, or 2-pin 5.08 mm terminal for an XT60 pigtail | through-hole | battery input |
-| F1 | 15 A automotive blade fuse | external inline holder | protects battery wiring |
-| SW1 | latching emergency-stop controlling a suitably rated external disconnect | external | physically removes actuator power |
-| D1 | SMBJ18A | SMB/DO-214AA | motor-rail transient clamp |
-| C1 | 1000 µF, 25 V, low-ESR | radial through-hole | main bulk capacitor |
-| C2 | 1 µF, 25 V, X7R | 1206 | high-frequency bulk bypass |
-| C3 | 100 nF, 25–50 V, X7R | 0805 | high-frequency bypass |
-| R1 | 100 kΩ, 1% | 0805 | battery monitor upper divider |
-| R2 | 27 kΩ, 1% | 0805 | battery monitor lower divider |
-| R3 | 1 kΩ | 0805 | ESP32 ADC protection |
-| C4 | 100 nF | 0805 | battery ADC filter |
-| D2 | BAT54S | SOT-23 | ADC clamp to 3V3/GND |
-
-### Connections
-
-```text
-J1.1 BAT+ -> external F1 -> external E-stop/disconnect -> VBAT_SW
-J1.2 BAT- ------------------------------------------------> GND
-
-D1 cathode -> VBAT_SW
-D1 anode   -> GND
-C1 positive -> VBAT_SW; C1 negative -> GND
-C2/C3 -> between VBAT_SW and GND
-
-VBAT_SW -> R1 100k -> BAT_SENSE_RAW -> R2 27k -> GND
-BAT_SENSE_RAW -> C4 100nF -> GND
-BAT_SENSE_RAW -> R3 1k -> BAT_ADC -> ESP32 GPIO33
-D2 clamps BAT_ADC to 3V3 and GND
-```
-
-At 12.6 V the divider produces about 2.68 V. In firmware, stop drive operation around 10.2 V under light load and also check individual cells with the balance connector during charging/maintenance.
-
-## Sheet 2 — 5 V buck converter
-
-Use an **LM2596S-5.0 fixed-output regulator IC**, not an LM2596 module. This rail powers the ESP32 carrier and low-current logic only.
-
-### Parts
-
-| Ref | Part/value | Package | Purpose |
-|---|---|---|---|
-| U1 | LM2596S-5.0/NOPB | TO-263-5/D2PAK | 5 V buck regulator |
-| L1 | 33 µH shielded power inductor, ≥4 A saturation, low DCR | e.g. Bourns SRP1265A-330M | buck inductor |
-| D3 | SS54 or equivalent 5 A, 40 V Schottky | SMA/SMB | catch diode |
-| C5 | 220 µF, 25 V, low-ESR | radial | input capacitor |
-| C6 | 100 nF, 25 V | 0805 | input ceramic |
-| C7 | 330 µF, 10 V, low-ESR | radial | output capacitor |
-| C8 | 22 µF, 10 V, X7R | 1210 | output ceramic |
-| R4 | 100 kΩ | 0805 | ON/OFF pull-down; keeps regulator enabled |
-| TP1/TP2 | test points | through-hole/SMD | 5V and GND |
-
-### Connections
-
-```text
-U1 VIN     -> VBAT_SW
-U1 GND/tab -> GND copper area
-U1 ON/OFF  -> GND through R4
-U1 SW      -> SW_NODE
-D3 cathode -> SW_NODE
-D3 anode   -> GND
-L1         -> SW_NODE on one end, +5V on the other
-C5/C6      -> VBAT_SW to GND, immediately beside U1
-C7/C8      -> +5V to GND, immediately beside L1/output return
-U1 FB      -> +5V after L1
-```
-
-Keep SW_NODE extremely small. Do not run it under the ESP32 antenna or encoder traces.
-
-## Sheet 3 — ESP32-PICO-KIT V4.1 carrier
-
-Use two 1x17, 2.54 mm female socket strips. The confirmed socket-row spacing is 17.78 mm. The official schematic labels the populated pins as positions 4–20 of each 20-pin connector; the three antenna-end flash pads are not installed into the carrier sockets.
-
-### Supporting parts
-
-| Ref | Part/value | Package |
-|---|---|---|
-| J2/J3 | 1x17 female socket headers, 2.54 mm | through-hole |
-| C9 | 470 µF, 10 V | radial |
-| C10/C11 | 100 nF | 0805 |
-| R5 | 10 kΩ | 0805 |
-| LED1 | green LED | 0805 |
-| R6 | 1 kΩ | 0805 |
-
-### Connections
-
-```text
-+5V -> ESP32 EXT_5V pin
-GND -> both available ESP32 GND pins
-C9/C10 -> +5V to GND near socket
-3V3 -> C11 to GND and logic pull-ups only
-3V3 -> R6 -> LED1 anode; LED1 cathode -> GND (optional power indicator)
-```
-
-Never power the ESP32 through Micro-USB and EXT_5V simultaneously. Keep all copper and components away from the antenna end.
-
-## Raspberry Pi 5 connections
-
-The PCB provides two physically separate Pi interfaces:
-
-1. **U4/F3/J9 high-current Pi power rail.** U4 is a TPS54560BDDA buck regulator using TI's documented 12 V to 5 V / 5 A reference values. F3 protects the output, and J9 is a Mini-Fit Jr connector with two parallel 5 V contacts and two parallel ground contacts. The LM2596 control regulator must never power the Pi.
-2. **J10 low-current UART/control connector.** J10 is a normal 1x8, 2.54 mm male header so individual female Dupont wires can connect directly to the Raspberry Pi GPIO header. Its pins are: `unused`, `GND`, `PI_TX`, `PI_RX`, `PI_ENABLE`, `CTRL_FAULT`, `I2C_SDA`, `I2C_SCL`.
-
-UART wiring:
-
-```text
-Raspberry Pi GPIO14 / TXD -> 1k series -> ESP32 GPIO3 / RXD0
-ESP32 GPIO1 / TXD0 -> 1k series -> Raspberry Pi GPIO15 / RXD
-Pi GND -------------------------------> controller GND
-```
-
-Both boards use 3.3 V UART logic, so no level shifter is required. J10 pin 1 is deliberately unused; do not join the Pi and ESP32 3.3 V rails. The ESP32 USB-UART bridge also uses RXD0/TXD0, so do not actively drive the Pi UART and Micro-USB serial adapter at the same time.
-
-The optional I2C pins are included for future expansion, but UART is the recommended first Pi-to-ESP32 link.
-
-## Sheets 4 and 5 — left/right VNH5019 motor channels
-
-Duplicate this entire circuit once for each motor. Use U2 for left and U3 for right.
-
-### Parts per motor
-
-| Ref group | Part/value | Package | Purpose |
-|---|---|---|---|
-| U2/U3 | VNH5019A-E | MultiPowerSO-30 | complete protected H-bridge IC |
-| C12/C15 | 470 µF, 25 V, low-ESR | radial | local motor bulk |
-| C13/C16 | 100 nF, 25–50 V | 0805 | local supply bypass |
-| R7/R14 | 1 kΩ, 1% | 0805 | current-sense load |
-| C14/C17 | 10 nF | 0805 | current-sense filter |
-| R8–R10 / R15–R17 | 100 kΩ | 0805 | INA, INB, PWM pull-downs |
-| R11/R18 | 10 kΩ | 0805 | diagnostic pull-up |
-| R12/R13 / R19/R20 | 1 kΩ | 0805 | protection between diagnostic pins and shared FAULT net |
-| J4/J5 | JST-PH 6-pin, 2.00 mm pitch | through-hole | one GA25-370 motor + encoder cable each |
-| C_MOTOR | 100 nF, ≥50 V ceramic | solder directly at motor terminals | brush-noise suppression |
-
-### Power/output connections
-
-Use the VNH5019 datasheet pin names, not guessed package numbers:
-
-```text
-all VCC pins/pads -> VBAT_SW with a wide copper pour
-all GND pins/pads -> power ground plane with thermal vias
-OUTA pins/pad -> motor connector terminal 1
-OUTB pins/pad -> motor connector terminal 2
-Cbulk 470uF and 100nF -> VCC to GND immediately beside the IC
-CS_DIS -> GND (current sensing enabled)
-CS -> 1k to GND and -> 10nF to GND and -> ESP32 ADC input
-```
-
-### Control/diagnostic connections
-
-```text
-INA -> ESP32 output; add 100k pull-down to GND
-INB -> ESP32 output; add 100k pull-down to GND
-PWM -> ESP32 PWM output; add 100k pull-down to GND
-ENA/DIAGA -> 1k -> FAULT; 10k pull-up from FAULT to 3V3
-ENB/DIAGB -> 1k -> same FAULT net
-```
-
-The IC accepts 3 V CMOS inputs. A low PWM disables drive. Firmware must start with PWM low.
-
-### ESP32 assignments
-
-| Function | GPIO |
+| Function | ESP32 GPIO |
 |---|---:|
-| LEFT_PWM | 25 |
-| LEFT_INA | 26 |
-| LEFT_INB | 27 |
-| RIGHT_PWM | 14 |
-| RIGHT_INA | 18 |
-| RIGHT_INB | 19 |
-| LEFT_FAULT | 32 |
-| BAT_ADC | 33 |
-| LEFT_CURRENT | 36 / SENSOR_VP |
-| RIGHT_CURRENT | 39 / SENSOR_VN |
+| PCA9685 SDA / SCL | 21 / 22 |
+| Raspberry Pi UART RX / TX | 18 / 19 |
+| Left motor fault | 23 |
+| Right motor fault | 5 |
+| Servo PWM output-enable | 32 |
+| Left PWM / INA / INB | 25 / 26 / 27 |
+| Right PWM / INA / INB | 14 / 13 / 4 |
+| Battery ADC | 33 |
+| Left / right current ADC | 36 / 39 |
+| Left encoder A / B | 34 / 35 |
+| Right encoder A / B | 37 / 38 |
 
-If a separate RIGHT_FAULT input is desired, use GPIO23. GPIO34/35 are reserved below for encoder signals.
+GPIO5 is a strap pin whose normal boot state is high; the right-driver diagnostic pull-up is therefore compatible with normal boot. GPIO2 is no longer used for servo OE, and UART0 GPIO1/3 remains free for the board's USB programming bridge.
 
-## Sheet 6 — encoder inputs
+## Raspberry Pi headers
 
-Power both motor encoders from 3.3 V so level shifting is unnecessary. Buffer all four signals through a 3.3 V Schmitt-trigger IC.
+J9 is the high-current Pi power connector: pins 1–2 are `PI_5V`, pins 3–4 are ground. It is a Molex Mini-Fit Jr 2x2 right-angle header. The Pi must not be powered from USB-C at the same time.
 
-### Parts
+J10 is a normal 1x8 2.54 mm header:
 
-| Ref | Part/value | Package |
-|---|---|---|
-| U4 | SN74LVC14APW hex Schmitt inverter | TSSOP-14 |
-| J6/J7 | JST-XH 1x4 vertical headers | through-hole |
-| R21–R24 | 1 kΩ series | 0805 |
-| R25–R28 | 10 kΩ pull-up to 3V3 | 0805 |
-| C18–C21 | 1 nF | 0805 |
-| C22 | 100 nF decoupling | 0805 |
+| J10 | Signal | Raspberry Pi connection |
+|---:|---|---|
+| 1 | GND | any Pi ground |
+| 2 | GND | second return wire |
+| 3 | Pi TX to ESP GPIO18 | GPIO14, physical pin 8 |
+| 4 | ESP GPIO19 to Pi RX | GPIO15, physical pin 10 |
+| 5 | `ACTUATOR_ENABLE` | GPIO17, physical pin 11 |
+| 6 | aggregated motor fault | optional Pi GPIO input |
+| 7 | optional I2C SDA | DNP R43 must be fitted |
+| 8 | optional I2C SCL | DNP R44 must be fitted |
 
-### Connections
+J20 is a normally open bench override that can tie `ACTUATOR_ENABLE` to 3.3 V. Do not install it when the Pi is expected to control enable.
 
-The confirmed J4/J5 cable order is: pin 1 red motor positive, pin 2 black encoder ground, pin 3 yellow encoder A, pin 4 green encoder B, pin 5 blue encoder +3.3 V, and pin 6 white motor negative. J15/J16 provide larger parallel through-hole solder pads for the red and white motor-power wires.
+## Wheel-motor connections
 
-## Servo output connectors
+J4 and J5 are JST-PH 2.00 mm six-pin headers matching the photographed cable order:
 
-J12–J14 use ordinary unshrouded **2.54 mm male 1x3 headers**, not JST-XH. Standard hobby-servo plugs fit these directly. The board order is `GND / power / PWM`. J12 receives regulated 8.4 V for the Miuzei 25KG 270° main-swing servo; J13/J14 receive regulated 6 V for the MG996R and MG90S.
+| Pin | Wire | Function |
+|---:|---|---|
+| 1 | red | motor OUTA |
+| 2 | black | encoder ground |
+| 3 | yellow | encoder A |
+| 4 | green | encoder B |
+| 5 | blue | filtered encoder 3.3 V |
+| 6 | white | motor OUTB |
 
-```text
-encoder signal -> 1k series -> FILTER_NODE -> one U4 input
-FILTER_NODE -> 10k -> 3V3
-FILTER_NODE -> 1nF -> GND
-U4 output -> ESP32 GPIO
-U4 VCC -> 3V3; U4 GND -> GND; 100nF directly at U4
-unused U4 inputs -> GND; unused outputs -> no connection
-```
+J15/J16 are parallel 1.7 mm through-hole motor-power pads. Use the large pads for the red/white power wires. The JST-PH power contacts are not the preferred high-current path. Fit the external C18/C19 100 nF capacitor directly across each motor's red/white terminals.
 
-Assignments:
+Each driver has a 5 A mini-blade branch fuse, 10 kΩ safe-state pull-downs, 1 kΩ control resistors, separate diagnostics, 35 V local bulk plus ceramic bypass, and a protected current ADC. The VNH5019 custom footprint keeps exposed pads 31, 32, and 33 electrically separate and gives each its own windowed paste and thermal-via field.
 
-| Encoder | GPIO |
-|---|---:|
-| Left A | 34 |
-| Left B | 35 |
-| Right A | 37 |
-| Right B | 38 |
+## Servo system
 
-The inverter changes signal polarity but not encoder counts or direction as long as both channels of a motor pass through identical inverter stages.
+U5 is a PCA9685. LED0, LED1, and LED2 generate independent commands; all three share a 50 Hz frame rate but can have different pulse widths.
 
-## Minimum consolidated BOM
+| Header | Servo | Power | Pin order |
+|---|---|---:|---|
+| J12 | Miuzei 25KG 270° main swing | 8.4 V | 1 GND, 2 power, 3 PWM |
+| J13 | MG996R elbow | 6 V | 1 GND, 2 power, 3 PWM |
+| J14 | MG90S wrist | 6 V | 1 GND, 2 power, 3 PWM |
 
-| Qty | Part |
-|---:|---|
-| 1 | LM2596S-5.0/NOPB |
-| 1 | 33 µH ≥4 A shielded inductor |
-| 1 | SS54 Schottky diode |
-| 2 | VNH5019A-E motor-driver IC |
-| 1 | SN74LVC14APW Schmitt buffer |
-| 1 | SMBJ18A TVS diode |
-| 1 | BAT54S dual Schottky |
-| 1 | XT60PW-M or XT60 pigtail plus terminal block |
-| 2 | 2-pin ≥10 A motor terminal blocks |
-| 2 | JST-XH 1x4 encoder headers |
-| 2 | 1x17 2.54 mm female ESP32 socket strips |
-| 1 | 1000 µF 25 V low-ESR capacitor |
-| 2 | 470 µF 25 V low-ESR capacitors for drivers |
-| 1 | 470 µF 10 V capacitor for ESP32 rail |
-| 1 | 330 µF 10 V low-ESR buck output capacitor |
-| 1 | 220 µF 25 V buck input capacitor |
-| assorted | listed 0805/1206/1210 resistors and ceramic capacitors |
-| external | 15 A blade fuse/holder, latching E-stop/disconnect, genuine 3S balance charger |
+These hobby servos contain an internal control loop and position sensor, but they do not return their measured position to the ESP32 through the normal three-wire connector.
 
-## PCB rules that are part of the electrical design
+`ACTUATOR_ENABLE` defaults low and controls both servo-regulator EN pins. PCA9685 OE also defaults disabled. This gives two startup safeguards: no servo power until the Pi enables it, and no PWM until the ESP32 enables outputs.
 
-- Use a 4-layer PCB if possible: top components/high current, solid GND plane, power/signals, bottom copper/thermal spreading.
-- Use 2 oz outer copper if affordable.
-- Use copper pours, not ordinary signal tracks, for VBAT, GND, OUTA, and OUTB.
-- Put many small thermal vias under each VNH5019 exposed pad exactly as ST recommends; do not use thermal reliefs on power pads.
-- Keep logic and encoder connectors away from motor outputs and the buck switch node.
-- Route each motor pair together and keep it away from encoder cables.
-- Put bulk capacitors beside the drivers, not beside the battery connector.
-- Do not place copper under or immediately in front of the ESP32 antenna.
-- The VNH5019 is not realistically hand-solderable with only a normal iron. Use solder paste and a hot plate/reflow oven or hot air, and inspect for bridges.
+## Power rails
 
-## Bring-up sequence
+- `VBAT_SW`: fused 3S battery supply for Pi and logic.
+- `ACT_VBAT`: battery supply after the external latching E-stop loop, used by motors and both servo regulators.
+- `+5V_CTRL`: ESP32 and logic only.
+- `PI_5V`: approximately 5.1 V, up to 5 A design target.
+- `SERVO_6V`: 6.0 V rail for J13/J14.
+- `MAIN_SERVO_8V4`: 8.4 V rail for J12.
+- `ENC_3V3`: ferrite-filtered encoder supply.
 
-1. Assemble only input protection and the 5 V buck; test from a current-limited bench supply at 9, 11.1, and 12.6 V.
-2. Verify 5 V before inserting the ESP32.
-3. Insert/program ESP32 and verify encoder inputs using hand rotation only.
-4. Assemble one VNH5019 channel and test with a small fuse and one unloaded motor.
-5. Confirm direction, braking, current sense, and fault response.
-6. Assemble the second channel.
-7. Test from the LiPo only after the bench tests pass and the external 15 A fuse/E-stop are installed.
+The TPS54560 networks now use the correct feedback divider and separately calculated compensation values. Their final stability still depends on the exact MLCC DC-bias capacitance and PCB layout; validate each rail on the first bare-board build before connecting the Pi or servos.
+
+## PCB rules that are not optional
+
+- Four-layer board strongly preferred: signal/power, solid ground, power distribution, signal/power.
+- Use 2 oz outer copper if practical.
+- Keep every buck input-capacitor/IC/diode loop extremely small; keep switch nodes away from ESP antenna, UART, ADC, and encoder traces.
+- Use Kelvin feedback routing from the output-capacitor node.
+- Keep the ESP antenna end over a copper/component keepout and put the USB end at a board edge.
+- Use separate high-current actuator branches from a star point; do not route motor/servo return current through the logic ground path.
+- Widen motor and rail copper with pours, not only traces. Verify current width using the board house's actual copper thickness and allowed temperature rise.
+- Add mounting holes, motor-wire strain relief, connector pin-1 legends, fuse ratings, rail names, and polarity on silkscreen.
+- Run ERC, PCB DRC, netlist comparison, Gerber inspection, drill inspection, and paste-window inspection before ordering.
+
+## Known design gates before manufacture
+
+1. Measure actual motor stall current or keep the conservative 5 A branch-fuse/copper allowance.
+2. Confirm every physical connector and servo SKU against the purchased part.
+3. Choose exact output MLCCs and verify their effective capacitance at 5.1 V, 6 V, and 8.4 V.
+4. Add or purchase a genuine 3S low-voltage protection solution. The battery ADC and Pi-controlled enable are not a hardware LiPo cutoff.
+5. Bench-test regulator startup and transient response on the first PCB with a current-limited supply and dummy loads.
