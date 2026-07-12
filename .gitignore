@@ -1,0 +1,15 @@
+# KiCad session, autosave, and lock files
+*.kicad_prl
+*.lck
+~*.kicad_*.lck
+
+# Generated local checks and temporary outputs
+generator.log
+schematic-svg/
+pickleball_controller*
+pickleball_robot_controller-erc.json
+pickleball_robot_controller.net
+
+# Python cache
+__pycache__/
+*.py[cod]
