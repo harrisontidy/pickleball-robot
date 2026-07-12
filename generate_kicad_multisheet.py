@@ -312,7 +312,7 @@ h.part("Device:R","R111","17.8 k 1%",210,135,"Resistor_SMD:R_0805_2012Metric"); 
 h.part("Device:C","C57","5.6 nF",250,120,"Capacitor_SMD:C_0805_2012Metric"); h.two("C57","MAIN8_COMP_RC","GND")
 h.part("Device:C","C58","47 pF",250,150,"Capacitor_SMD:C_0805_2012Metric"); h.two("C58","MAIN8_COMP","GND")
 for i,ref in enumerate(["C59","C60","C63","C66"]):
-    h.part("Device:C",ref,"22 uF 25 V X7R",280+(i%2)*28,50+(i//2)*30,"Capacitor_SMD:C_1210_3225Metric"); h.two(ref,"MAIN8_RAW","GND")
+    h.part("Device:C",ref,"CL32B226KLV6PN 22 uF 35 V X7R",280+(i%2)*28,50+(i//2)*30,"Capacitor_SMD:C_1210_3225Metric"); h.two(ref,"MAIN8_RAW","GND")
 h.part("Device:Fuse","F4","5 A MINI BLADE MAIN SERVO",330,75,"Fuse:Fuseholder_Blade_Mini_Keystone_3568"); h.two("F4","MAIN8_RAW","MAIN_SERVO_8V4")
 h.part("Device:D_TVS","D12","SMBJ10A",370,60,"Diode_SMD:D_SMB"); h.two("D12","GND","MAIN_SERVO_8V4")
 h.part("Device:C_Polarized","C61","220 uF 16 V LOW ESR",370,100,"Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"); h.two("C61","MAIN_SERVO_8V4","GND")

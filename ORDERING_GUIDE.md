@@ -25,7 +25,7 @@ The generated `pickleball_robot_controller-bom.csv` is the complete reference/va
 | J9 | Molex 39-30-1040 right-angle 2x2 Mini-Fit Jr header; use its exact drawing before PCB order |
 | J4/J5 | JST B6B-PH-K-S(LF)(SN), 2.00 mm six-pin vertical header |
 
-U4/U10 use three Murata `GRM32ER71A476KE15L` 47 µF, 10 V, X7R, 1210 capacitors. U11 uses four 22 µF, 25 V, X7R, 1210 capacitors; select an in-stock part whose manufacturer DC-bias curve leaves at least about 58 µF total at 8.4 V. Do not substitute nominal capacitance without rechecking compensation.
+U4/U10 use three Murata `GRM32ER71A476KE15L` 47 µF, 10 V, X7R, 1210 capacitors. U11 uses four Samsung `CL32B226KLV6PN#` 22 µF, 35 V, X7R, 1210 capacitors. Confirm the suffix for the packaging you buy and verify the manufacturer's DC-bias curve leaves at least about 58 µF total at 8.4 V. Do not substitute nominal capacitance without rechecking compensation.
 
 All ordinary resistors and small capacitors are 0805. Exceptions are intentional: high-capacitance output MLCCs are 1210, TVSs/Schottkys use power packages, bulk capacitors and fuse holders are through-hole, and the high-current ICs have exposed pads.
 
@@ -39,7 +39,7 @@ All ordinary resistors and small capacitors are 0805. Exceptions are intentional
 ## Do not order yet without checking
 
 - Exact electrolytic series, diameter, height, ESR, ripple current, and lead spacing.
-- Exact 22 µF/25 V output MLCC for U11 and its DC-bias curve.
+- U11 output MLCC DC-bias curve and availability for Samsung `CL32B226KLV6PN#`.
 - Servo model voltage limits and connector polarity.
 - Motor JST family by direct measurement/continuity test.
 - Fuse nuisance-blow behavior after real motor/servo testing.

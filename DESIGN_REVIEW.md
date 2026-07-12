@@ -18,7 +18,7 @@
 ## Remaining gates — do not send Gerbers until these are closed
 
 1. **Battery protection:** add/choose a genuine hardware 3S undervoltage cutoff. Firmware voltage sensing is not sufficient protection against a crashed controller.
-2. **Regulator validation:** choose final output MLCC MPNs using their DC-bias curves, then verify U4/U10/U11 stability, startup, load steps, ripple, and temperature on the first prototype. Equations reduce risk but do not replace bench validation.
+2. **Regulator validation:** confirm the selected Murata/Samsung output MLCC DC-bias curves, then verify U4/U10/U11 stability, startup, load steps, ripple, and temperature on the first prototype. Equations reduce risk but do not replace bench validation.
 3. **Mechanical confirmation:** print the PCB 1:1 and place the real ESP32, J4/J5 harness, Mini-Fit Jr, terminal blocks, fuse holders, capacitors, and servo plugs on it.
 4. **Motor current:** a 5 A branch allowance is conservative, not a claim that the motor normally draws 5 A. Measure the actual stall/current-limited behavior before reducing fuse, connector, wire, or copper margin.
 5. **Servo identity:** confirm the exact Miuzei SKU allows continuous 8.4 V and verify MG996R/MG90S lead polarity.
