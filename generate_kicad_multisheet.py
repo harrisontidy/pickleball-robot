@@ -16,6 +16,9 @@ class Sheet:
         self.s.set_title_block(title=title, date="2026-07-12", rev="R2-MULTISHEET",
                                company="Harrison", comments={1: f"Sheet {number} of {TOTAL_SHEETS}"})
         self.labels = []
+        self.dnp_refs = set()
+        self.offboard_refs = set()
+        self.no_bom_refs = set()
 
     def part(self, lib, ref, value, x, y, footprint="", rotation=0.0):
         return self.s.components.add(lib, reference=ref, value=value,
@@ -47,9 +50,22 @@ class Sheet:
     def text(self, value, x, y, size=1.5, bold=False):
         self.s.add_text(value, (x,y), size=size, bold=bold)
 
+    def mark_dnp(self, *refs):
+        self.dnp_refs.update(refs)
+
+    def mark_offboard(self, *refs):
+        self.offboard_refs.update(refs)
+
+    def mark_no_bom(self, *refs):
+        self.no_bom_refs.update(refs)
+
     def save(self):
-        self.s.save_as(self.path, preserve_format=False)
-        raw = self.path.read_text(encoding="utf-8")
+        # Write atomically through a sibling file. This avoids partial child
+        # sheets and intermittent Windows overwrite failures while KiCad has
+        # the project hierarchy open for viewing.
+        tmp = self.path.with_name(self.path.stem + ".generated.kicad_sch")
+        self.s.save_as(tmp, preserve_format=False)
+        raw = tmp.read_text(encoding="utf-8")
         chunks=[]
         for name,x,y,angle,justify in self.labels:
             chunks.append(
@@ -63,7 +79,38 @@ class Sheet:
                 f'\t\t\t(effects (font (size 0.7 0.7)) (hide yes))\n\t\t)\n\t)\n')
         marker="\t(sheet_instances"
         raw=raw.replace(marker,"".join(chunks)+marker,1)
-        self.path.write_text(raw,encoding="utf-8")
+        for ref in sorted(self.dnp_refs | self.offboard_refs | self.no_bom_refs):
+            marker=f'(property "Reference" "{ref}"'
+            pos=raw.find(marker)
+            if pos < 0:
+                raise RuntimeError(f"Cannot set schematic flags for missing {ref}")
+            start=raw.rfind("\n\t(symbol",0,pos)+1
+            depth=0; quoted=False; escaped=False; end=None
+            for i in range(start,len(raw)):
+                ch=raw[i]
+                if quoted:
+                    if escaped: escaped=False
+                    elif ch=="\\": escaped=True
+                    elif ch=='"': quoted=False
+                else:
+                    if ch=='"': quoted=True
+                    elif ch=='(': depth+=1
+                    elif ch==')':
+                        depth-=1
+                        if depth==0:
+                            end=i+1; break
+            if end is None:
+                raise RuntimeError(f"Cannot parse symbol block for {ref}")
+            block=raw[start:end]
+            if ref in self.dnp_refs:
+                block=block.replace("(dnp no)","(dnp yes)",1)
+            if ref in self.offboard_refs:
+                block=block.replace("(on_board yes)","(on_board no)",1)
+            if ref in self.no_bom_refs:
+                block=block.replace("(in_bom yes)","(in_bom no)",1)
+            raw=raw[:start]+block+raw[end:]
+        tmp.write_text(raw,encoding="utf-8")
+        tmp.replace(self.path)
 
 def flags(sh, entries, y=245):
     for i,(ref,net) in enumerate(entries):
@@ -72,20 +119,22 @@ def flags(sh, entries, y=245):
 
 def testpoint(sh, ref, net, x, y, label=None):
     sh.part("Connector:TestPoint", ref, label or net, x, y,
-            "TestPoint:TestPoint_Loop_D2.50mm_Drill1.0mm")
+            "TestPoint:TestPoint_Pad_D1.5mm")
     sh.net(ref, 1, net, 5.08)
+    sh.mark_no_bom(ref)
 
 # ------------------------------------------------------------------ Sheet 1
 p=Sheet("01_power_and_pi.kicad_sch","Battery Protection, Logic Buck, and Raspberry Pi Power",1)
 p.text("BATTERY INPUT AND PROTECTION",65,18,2.2,True)
-p.part("Connector_Generic:Conn_01x02","J1","XT60 PIGTAIL",35,38,"TerminalBlock:TerminalBlock_MaiXu_MX126-5.0-02P_1x02_P5.00mm")
-p.net("J1",1,"BAT_RAW"); p.net("J1",2,"GND")
+p.part("Connector_Generic:Conn_01x02","J1","AMASS XT60PW-M BATTERY INPUT",35,38,"Connector_AMASS:AMASS_XT60PW-M_1x02_P7.20mm_Horizontal")
+p.net("J1",1,"GND"); p.net("J1",2,"BAT_RAW")
 p.part("Device:Fuse","F1","15 A ATO BLADE",68,33,"Fuse:Fuse_Blade_ATO_directSolder"); p.two("F1","BAT_RAW","VBAT_SW")
-p.part("Device:D_TVS","D1","SMBJ15A",100,38,"Diode_SMD:D_SMB"); p.two("D1","GND","VBAT_SW")
-p.part("Device:C_Polarized","C1","1000 uF 35 V",128,38,"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm"); p.two("C1","VBAT_SW","GND")
+p.part("Device:D_TVS","D1","SMBJ15CA",100,38,"Diode_SMD:D_SMB"); p.two("D1","VBAT_SW","GND")
+p.part("Device:C_Polarized","C1","1000 uF 35 V",128,38,"Capacitor_THT:CP_Radial_D12.5mm_P5.00mm"); p.two("C1","VBAT_SW","GND")
 p.part("Device:C","C2","1 uF 25 V",152,38,"Capacitor_SMD:C_0805_2012Metric"); p.two("C2","VBAT_SW","GND")
-p.part("Connector_Generic:Conn_01x02","J18","EXTERNAL LATCHING E-STOP",185,38,"TerminalBlock:TerminalBlock_MaiXu_MX126-5.0-02P_1x02_P5.00mm")
+p.part("Connector_Generic:Conn_01x02","J18","EXTERNAL DC-RATED LATCHING E-STOP",185,38,"TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-3-2-5.08_1x02_P5.08mm_Horizontal")
 p.net("J18",1,"VBAT_SW"); p.net("J18",2,"ACT_VBAT")
+p.part("Device:D_TVS","D21","SMBJ15CA ACT TVS",205,48,"Diode_SMD:D_SMB"); p.two("D21","ACT_VBAT","GND")
 p.text("J18 must be closed by a latching E-stop switch. It removes actuator power but keeps Pi/ESP logic alive.",125,58,1.25)
 
 p.text("BATTERY VOLTAGE MONITOR",65,78,1.8,True)
@@ -93,38 +142,42 @@ p.part("Device:R","R1","100 k 1%",45,98,"Resistor_SMD:R_0805_2012Metric"); p.two
 p.part("Device:R","R2","27 k 1%",80,98,"Resistor_SMD:R_0805_2012Metric"); p.two("R2","BAT_SENSE_RAW","GND")
 p.part("Device:R","R3","1 k",115,98,"Resistor_SMD:R_0805_2012Metric"); p.two("R3","BAT_SENSE_RAW","GPIO33_BAT_ADC")
 p.part("Device:C","C4","100 nF",150,98,"Capacitor_SMD:C_0805_2012Metric"); p.two("C4","GPIO33_BAT_ADC","GND")
-p.part("Device:D_Schottky","D2","BAT54",175,88,"Diode_SMD:D_SOD-323"); p.two("D2","GND","GPIO33_BAT_ADC")
-p.part("Device:D_Schottky","D14","BAT54",175,108,"Diode_SMD:D_SOD-323"); p.two("D14","GPIO33_BAT_ADC","3V3")
+p.part("Device:D_Schottky","D2","BAT54 LOW CLAMP",175,88,"Diode_SMD:D_SOD-323"); p.two("D2","GPIO33_BAT_ADC","GND")
+p.part("Device:D_Schottky","D14","BAT54 HIGH CLAMP",175,108,"Diode_SMD:D_SOD-323"); p.two("D14","3V3","GPIO33_BAT_ADC")
 
 p.text("5 V CONTROL BUCK — ESP32 AND LOGIC ONLY",80,130,1.8,True)
 p.part("Regulator_Switching:LM2596S-5","U1","LM2596S-5.0",70,158,"Package_TO_SOT_SMD:TO-263-5_TabPin3")
 for pin,net in [(1,"VBAT_SW"),(2,"CTRL_SW"),(3,"GND"),(4,"+5V_CTRL"),(5,"GND")]: p.net("U1",pin,net)
-p.part("Device:D_Schottky","D3","SS54",112,148,"Diode_SMD:D_SMA"); p.two("D3","GND","CTRL_SW")
+p.part("Device:D_Schottky","D3","SS54",112,148,"Diode_SMD:D_SMA"); p.two("D3","CTRL_SW","GND")
 p.part("Device:L","L1","33 uH 4 A",112,170,"Inductor_SMD:L_Sunlord_MWSA1265S"); p.two("L1","CTRL_SW","+5V_CTRL")
 p.part("Device:C_Polarized","C5","220 uF 25 V",155,148,"Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"); p.two("C5","VBAT_SW","GND")
-p.part("Device:C_Polarized","C7","330 uF 10 V",155,170,"Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"); p.two("C7","+5V_CTRL","GND")
+p.part("Device:C_Polarized","C7","330 uF 10 V ESR QUALIFIED",155,170,"Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"); p.two("C7","+5V_CTRL","GND")
 
 p.text("RASPBERRY PI 5 V / 5 A BUCK",220,18,2.1,True)
-p.part("Regulator_Switching:TPS54560BDDA","U4","TPS54560BDDA",265,58,"Package_SO:TI_SO-PowerPAD-8_ThermalVias")
-for pin,net in [(1,"PI_BOOT"),(2,"VBAT_SW"),(3,"VBAT_SW"),(4,"PI_RT"),(5,"PI_FB"),(6,"PI_COMP"),(7,"GND"),(8,"PI_BUCK_SW"),(9,"GND")]: p.net("U4",pin,net)
-p.part("Device:C","C31","100 nF",310,35,"Capacitor_SMD:C_0805_2012Metric"); p.two("C31","PI_BOOT","PI_BUCK_SW")
-p.part("Device:D_Schottky","D9","B560C-13-F",310,58,"Diode_SMD:D_SMC"); p.two("D9","GND","PI_BUCK_SW")
-p.part("Device:L","L2","XAL7070-682MEC 6.8 uH",350,58,"Inductor_SMD:L_Coilcraft_XAL7070-XXX"); p.two("L2","PI_BUCK_SW","PI_5V_RAW")
+p.part("Regulator_Switching:TPS54560BDDA","U4","TPS54560BDDA",285,65,"Package_SO:TI_SO-PowerPAD-8_ThermalVias")
+for pin,net in [(1,"PI_BOOT"),(2,"VBAT_SW"),(3,"PI_EN_UVLO"),(4,"PI_RT"),(5,"PI_FB"),(6,"PI_COMP"),(7,"GND"),(8,"PI_BUCK_SW"),(9,"GND")]: p.net("U4",pin,net)
+p.part("Device:R","R34","267 k 1%",225,90,"Resistor_SMD:R_0805_2012Metric"); p.two("R34","VBAT_SW","PI_EN_UVLO")
+p.part("Device:R","R35","34.0 k 1%",250,90,"Resistor_SMD:R_0805_2012Metric"); p.two("R35","PI_EN_UVLO","GND")
+p.part("Device:C","C31","100 nF",325,35,"Capacitor_SMD:C_0805_2012Metric"); p.two("C31","PI_BOOT","PI_BUCK_SW")
+p.part("Device:D_Schottky","D9","B560C-13-F",330,65,"Diode_SMD:D_SMC"); p.two("D9","PI_BUCK_SW","GND")
+p.part("Device:R","R36","DNP SNUBBER 10 R",335,90,"Resistor_SMD:R_0805_2012Metric"); p.two("R36","PI_BUCK_SW","PI_SNUB")
+p.part("Device:C","C68","DNP SNUBBER 1 nF",365,90,"Capacitor_SMD:C_0805_2012Metric"); p.two("C68","PI_SNUB","GND"); p.mark_dnp("R36","C68")
+p.part("Device:L","L2","XAL7070-682MEC 6.8 uH",375,65,"Inductor_SMD:L_Coilcraft_XAL7070-XXX"); p.two("L2","PI_BUCK_SW","PI_5V_RAW")
 for i,ref in enumerate(["C32","C33","C34","C35"]):
-    p.part("Device:C",ref,"2.2 uF 25 V",220+(i%2)*22,38+(i//2)*30,"Capacitor_SMD:C_0805_2012Metric"); p.two(ref,"VBAT_SW","GND")
-p.part("Device:R","R30","243 k",230,100,"Resistor_SMD:R_0805_2012Metric"); p.two("R30","PI_RT","GND")
-p.part("Device:R","R31","54.9 k 1%",300,100,"Resistor_SMD:R_0805_2012Metric"); p.two("R31","PI_5V_RAW","PI_FB")
-p.part("Device:R","R32","10.2 k 1%",330,100,"Resistor_SMD:R_0805_2012Metric"); p.two("R32","PI_FB","GND")
-p.part("Device:R","R33","16.9 k 1%",365,100,"Resistor_SMD:R_0805_2012Metric"); p.two("R33","PI_COMP","PI_COMP_RC")
-p.part("Device:C","C36","5.1 nF",395,90,"Capacitor_SMD:C_0805_2012Metric"); p.two("C36","PI_COMP_RC","GND")
-p.part("Device:C","C37","47 pF",395,110,"Capacitor_SMD:C_0805_2012Metric"); p.two("C37","PI_COMP","GND")
-p.part("Device:C","C38","47 uF 10 V X7R",265,140,"Capacitor_SMD:C_1210_3225Metric"); p.two("C38","PI_5V_RAW","GND")
-p.part("Device:C","C39","47 uF 10 V X7R",300,140,"Capacitor_SMD:C_1210_3225Metric"); p.two("C39","PI_5V_RAW","GND")
-p.part("Device:C","C44","47 uF 10 V X7R",335,140,"Capacitor_SMD:C_1210_3225Metric"); p.two("C44","PI_5V_RAW","GND")
-p.part("Device:Fuse","F3","5 A MINI BLADE",360,140,"Fuse:Fuseholder_Blade_Mini_Keystone_3568"); p.two("F3","PI_5V_RAW","PI_5V")
-p.part("Connector_Generic:Conn_02x02_Odd_Even","J9","PI POWER OUT",385,165,"Connector_Molex:Molex_Mini-Fit_Jr_5569-04A2_2x02_P4.20mm_Horizontal")
+    p.part("Device:C",ref,"2.2 uF 25 V X7R",225+(i%2)*25,30+(i//2)*25,"Capacitor_SMD:C_0805_2012Metric"); p.two(ref,"VBAT_SW","GND")
+p.part("Device:R","R30","243 k",275,115,"Resistor_SMD:R_0805_2012Metric"); p.two("R30","PI_RT","GND")
+p.part("Device:R","R31","54.9 k 1%",310,115,"Resistor_SMD:R_0805_2012Metric"); p.two("R31","PI_5V_RAW","PI_FB")
+p.part("Device:R","R32","10.2 k 1%",340,115,"Resistor_SMD:R_0805_2012Metric"); p.two("R32","PI_FB","GND")
+p.part("Device:R","R33","16.9 k 1%",375,115,"Resistor_SMD:R_0805_2012Metric"); p.two("R33","PI_COMP","PI_COMP_RC")
+p.part("Device:C","C36","5.1 nF",405,105,"Capacitor_SMD:C_0805_2012Metric"); p.two("C36","PI_COMP_RC","GND")
+p.part("Device:C","C37","47 pF",405,125,"Capacitor_SMD:C_0805_2012Metric"); p.two("C37","PI_COMP","GND")
+p.part("Device:C","C38","47 uF 10 V X7R",285,150,"Capacitor_SMD:C_1210_3225Metric"); p.two("C38","PI_5V_RAW","GND")
+p.part("Device:C","C39","47 uF 10 V X7R",320,150,"Capacitor_SMD:C_1210_3225Metric"); p.two("C39","PI_5V_RAW","GND")
+p.part("Device:C","C44","47 uF 10 V X7R",355,150,"Capacitor_SMD:C_1210_3225Metric"); p.two("C44","PI_5V_RAW","GND")
+p.part("Device:Fuse","F3","5 A MINI BLADE",380,150,"Fuse:Fuseholder_Blade_Mini_Keystone_3568"); p.two("F3","PI_5V_RAW","PI_5V")
+p.part("Connector_Generic:Conn_02x02_Odd_Even","J9","PI POWER OUT",400,175,"Connector_Molex:Molex_Mini-Fit_Jr_5569-04A2_2x02_P4.20mm_Horizontal")
 for pin,net in [(1,"PI_5V"),(2,"PI_5V"),(3,"GND"),(4,"GND")]: p.net("J9",pin,net)
-p.part("Device:C_Polarized","C30","470 uF 10 V LOW ESR",350,190,"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm"); p.two("C30","PI_5V","GND")
+p.part("Device:C_Polarized","C30","DNP OPTIONAL BULK 470 uF 10 V",370,195,"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm"); p.two("C30","PI_5V","GND"); p.mark_dnp("C30")
 for ref,net,x,y in [("TP1","BAT_RAW",30,225),("TP2","VBAT_SW",75,225),("TP3","ACT_VBAT",120,225),
                     ("TP4","+5V_CTRL",165,225),("TP5","PI_5V",210,225),("TP6","GND",255,225)]:
     testpoint(p,ref,net,x,y)
@@ -135,7 +188,7 @@ p.save()
 c=Sheet("02_esp32_and_pi.kicad_sch","ESP32 Carrier, Raspberry Pi UART, and Status LEDs",2)
 c.text("ESP32-PICO-KIT V4.1 CARRIER — CONFIRMED 17.78 mm ROW SPACING",100,18,2.0,True)
 c.part("Connector_Generic:Conn_02x17_Odd_Even","J2","ESP32-PICO-KIT V4.1",85,100,"PickleballRobot:ESP32_PICO_KIT_V4_1_Carrier")
-left=["GPIO21_I2C_SDA","GPIO22_I2C_SCL","GPIO19_PI_TX","GPIO23_LEFT_DIAG","GPIO18_PI_RX","GPIO5_RIGHT_DIAG",None,None,None,None,"GPIO35_ENC_LB","GPIO34_ENC_LA","GPIO38_ENC_RB","GPIO37_ENC_RA",None,"GND","3V3"]
+left=["GPIO21_I2C_SDA","GPIO22_I2C_SCL","GPIO19_PI_TX","GPIO23_MOTOR_DIAG","GPIO18_PI_RX",None,None,None,None,None,"GPIO35_ENC_LB","GPIO34_ENC_LA","GPIO38_ENC_RB","GPIO37_ENC_RA",None,"GND","3V3"]
 right=["SENSOR_VP_GPIO36","SENSOR_VN_GPIO39","GPIO25_L_PWM","GPIO26_L_INA","GPIO32_SERVO_OE","GPIO33_BAT_ADC","GPIO27_L_INB","GPIO14_R_PWM",None,"GPIO13_R_INA",None,None,"GPIO4_R_INB",None,"3V3","GND","+5V_CTRL"]
 for i,net in enumerate(left,1):
     if net:
@@ -146,20 +199,23 @@ for i,net in enumerate(right,1): c.net("J2",2*i,net) if net else c.nc("J2",2*i)
 
 c.text("RASPBERRY PI UART / CONTROL — NORMAL 2.54 mm HEADER",210,18,2.0,True)
 c.part("Connector_Generic:Conn_01x08","J10","PI UART / CONTROL",255,72,"Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical")
-jnets=["GND","GND","PI_TX_TO_ESP","ESP_TX_TO_PI","ACTUATOR_ENABLE","MOTOR_DIAG","PI_I2C_SDA","PI_I2C_SCL"]
+jnets=["GND","GND","PI_TX_TO_ESP","ESP_TX_TO_PI","SERVO_POWER_ENABLE","MOTOR_DIAG","PI_I2C_SDA","PI_I2C_SCL"]
 for i,net in enumerate(jnets,1): c.net("J10",i,net) if net else c.nc("J10",i)
 c.part("Device:R","R40","1 k",315,45,"Resistor_SMD:R_0805_2012Metric"); c.two("R40","PI_TX_TO_ESP","GPIO18_PI_RX")
 c.part("Device:R","R41","1 k",315,65,"Resistor_SMD:R_0805_2012Metric"); c.two("R41","GPIO19_PI_TX","ESP_TX_TO_PI")
-c.part("Device:R","R42","100 k DEFAULT OFF",315,85,"Resistor_SMD:R_0805_2012Metric"); c.two("R42","ACTUATOR_ENABLE","GND")
+c.part("Device:R","R42","10 k DEFAULT OFF",315,85,"Resistor_SMD:R_0805_2012Metric"); c.two("R42","SERVO_POWER_ENABLE","GND")
 c.part("Device:R","R43","0 R DNP",315,105,"Resistor_SMD:R_0805_2012Metric"); c.two("R43","PI_I2C_SDA","GPIO21_I2C_SDA")
 c.part("Device:R","R44","0 R DNP",315,125,"Resistor_SMD:R_0805_2012Metric"); c.two("R44","PI_I2C_SCL","GPIO22_I2C_SCL")
-c.part("Connector_Generic:Conn_01x02","J20","ACTUATOR ENABLE OVERRIDE DNP",375,105,"Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical")
-c.net("J20",1,"3V3"); c.net("J20",2,"ACTUATOR_ENABLE")
+c.part("Connector_Generic:Conn_01x02","J20","SERVO ENABLE OVERRIDE DNP",375,105,"Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical")
+c.net("J20",1,"3V3"); c.net("J20",2,"SERVO_ENABLE_OVERRIDE")
+c.part("Device:R","R46","4.7 k OVERRIDE ISOLATION",375,125,"Resistor_SMD:R_0805_2012Metric"); c.two("R46","SERVO_ENABLE_OVERRIDE","SERVO_POWER_ENABLE")
+c.mark_dnp("R43","R44","J20")
 c.part("Device:R","R45","10 k",350,35,"Resistor_SMD:R_0805_2012Metric"); c.two("R45","MOTOR_DIAG","3V3")
-c.part("Device:D","D15","1N4148",350,55,"Diode_SMD:D_SOD-323"); c.two("D15","MOTOR_DIAG","LEFT_DIAG")
-c.part("Device:D","D16","1N4148",380,55,"Diode_SMD:D_SOD-323"); c.two("D16","MOTOR_DIAG","RIGHT_DIAG")
-c.text("J10: 1/2 GND; 3 Pi TX->ESP GPIO18; 4 ESP GPIO19->Pi RX; 5 actuator enable; 6 fault; 7/8 I2C DNP.",205,145,1.15)
-c.text("Pi: GPIO14 pin 8 -> J10.3; GPIO15 pin 10 <- J10.4; GPIO17 pin 11 -> J10.5; GND -> J10.1/2.",205,153,1.15)
+c.part("Device:D_Schottky","D15","BAT54 FAULT OR",350,55,"Diode_SMD:D_SOD-323"); c.two("D15","LEFT_DIAG","MOTOR_DIAG")
+c.part("Device:D_Schottky","D16","BAT54 FAULT OR",380,55,"Diode_SMD:D_SOD-323"); c.two("D16","RIGHT_DIAG","MOTOR_DIAG")
+c.part("Device:R","R47","1 k ESP FAULT SERIES",380,35,"Resistor_SMD:R_0805_2012Metric"); c.two("R47","MOTOR_DIAG","GPIO23_MOTOR_DIAG")
+c.text("J10: 1/2 GND; 3 Pi TX->ESP GPIO18; 4 ESP GPIO19->Pi RX; 5 servo-power enable; 6 motor fault; 7/8 I2C DNP.",205,145,1.15)
+c.text("Pi: GPIO14 pin8 -> J10.3; GPIO15 pin10 <- J10.4; GPIO17 pin11 -> J10.5; GPIO27 pin13 <- J10.6; GND -> J10.1/2.",205,153,1.15)
 
 c.text("STATUS LEDS",215,165,1.8,True)
 leds=[("R100","D5","1 k","GREEN LOGIC","+5V_CTRL","LED_CTRL",220),
@@ -168,10 +224,10 @@ leds=[("R100","D5","1 k","GREEN LOGIC","+5V_CTRL","LED_CTRL",220),
       ("R103","D8","1 k","RED FAULT","3V3","LED_FAULT",370)]
 for rr,dd,rv,dv,a,m,x in leds:
     c.part("Device:R",rr,rv,x,190,"Resistor_SMD:R_0805_2012Metric"); c.two(rr,a,m)
-    c.part("Device:LED",dd,dv,x,215,"LED_SMD:LED_0805_2012Metric"); c.two(dd,m,"MOTOR_DIAG" if dd=="D8" else "GND")
+    c.part("Device:LED",dd,dv,x,215,"LED_SMD:LED_0805_2012Metric"); c.two(dd,"MOTOR_DIAG" if dd=="D8" else "GND",m)
 flags(c,[("#FLG07","3V3")],245)
 for ref,net,x in [("TP7","3V3",210),("TP8","PI_TX_TO_ESP",245),("TP9","ESP_TX_TO_PI",280),
-                  ("TP10","ACTUATOR_ENABLE",315),("TP11","MOTOR_DIAG",350),("TP12","GND",385)]:
+                  ("TP10","SERVO_POWER_ENABLE",315),("TP11","MOTOR_DIAG",350),("TP12","GND",385)]:
     testpoint(c,ref,net,x,235)
 c.save()
 
@@ -181,7 +237,7 @@ def motor_sheet(filename,title,num,u,j,prefix,xgpio):
     m.part("Driver_Motor:VNH5019A-E",u,"VNH5019A-E",105,105,"PickleballRobot:VNH5019_MultiPowerSO30_ThermalVias")
     pwm,ina,inb,cs_adc,ea,eb=xgpio
     drv_pwm,drv_ina,drv_inb=[prefix+s for s in ("_PWM_DRV","_INA_DRV","_INB_DRV")]
-    cs_raw=prefix+"_CS_RAW"; diag=prefix+"_DIAG"; diag_gpio=("GPIO23_LEFT_DIAG" if prefix=="LEFT" else "GPIO5_RIGHT_DIAG")
+    cs_raw=prefix+"_CS_RAW"; diag=prefix+"_DIAG"
     branch=prefix+"_VBAT"
     fuse_ref="F5" if prefix=="LEFT" else "F6"
     m.part("Device:Fuse",fuse_ref,"5 A MINI BLADE MOTOR BRANCH",55,40,"Fuse:Fuseholder_Blade_Mini_Keystone_3568"); m.two(fuse_ref,"ACT_VBAT",branch)
@@ -189,14 +245,20 @@ def motor_sheet(filename,title,num,u,j,prefix,xgpio):
     m.nc(u,11)
     m.part("Connector_Generic:Conn_01x06",j,prefix+" MOTOR + ENCODER",235,105,"Connector_JST:JST_PH_B6B-PH-K_1x06_P2.00mm_Vertical")
     # Exact cable order confirmed from the physical motor harness.
-    for pin,net in [(1,prefix+"_OUTA"),(2,"GND"),(3,ea),(4,eb),(5,"ENC_3V3"),(6,prefix+"_OUTB")]: m.net(j,pin,net)
+    ph_a=prefix+"_PH_MOTOR_A"; ph_b=prefix+"_PH_MOTOR_B"; enc_supply=prefix+"_ENC_3V3"
+    for pin,net in [(1,ph_a),(2,"GND"),(3,ea),(4,eb),(5,enc_supply),(6,ph_b)]: m.net(j,pin,net)
+    jpbase=1 if prefix=="LEFT" else 3
+    for ref,a,b,y in [(f"JP{jpbase}",prefix+"_OUTA",ph_a,75),(f"JP{jpbase+1}",prefix+"_OUTB",ph_b,135)]:
+        m.part("Jumper:SolderJumper_2_Open",ref,"PH MOTOR POWER BYPASS - NORMALLY OPEN",275,y,"Jumper:SolderJumper-2_P1.3mm_Open_Pad1.0x1.5mm"); m.two(ref,a,b)
+    enc_fuse="F7" if prefix=="LEFT" else "F8"
+    m.part("Device:Polyfuse",enc_fuse,"100 mA PTC",265,165,"Fuse:Fuse_0805_2012Metric"); m.two(enc_fuse,"ENC_3V3",enc_supply)
     pad_ref="J15" if prefix=="LEFT" else "J16"
     m.part("Connector_Generic:Conn_01x02",pad_ref,prefix+" MOTOR LARGE SOLDER PADS",300,105,
            "Connector_Wire:SolderWire-1.5sqmm_1x02_P7.8mm_D1.7mm_OD3.9mm")
     m.net(pad_ref,1,prefix+"_OUTA"); m.net(pad_ref,2,prefix+"_OUTB")
     cap="C12" if prefix=="LEFT" else "C15"; ccer="C13" if prefix=="LEFT" else "C16"; cbulk="C14" if prefix=="LEFT" else "C17"
     rcs="R7" if prefix=="LEFT" else "R14"; base=80 if prefix=="LEFT" else 90
-    m.part("Device:C_Polarized",cap,"470 uF 35 V LOW ESR",175,45,"Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"); m.two(cap,branch,"GND")
+    m.part("Device:C_Polarized",cap,"470 uF 35 V",175,45,"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm"); m.two(cap,branch,"GND")
     m.part("Device:C",ccer,"100 nF 50 V",205,40,"Capacitor_SMD:C_0805_2012Metric"); m.two(ccer,branch,"GND")
     m.part("Device:C",cbulk,"1 uF 25 V",205,62,"Capacitor_SMD:C_0805_2012Metric"); m.two(cbulk,branch,"GND")
     m.part("Device:R",rcs,"680 R current sense",175,145,"Resistor_SMD:R_0805_2012Metric"); m.two(rcs,cs_raw,"GND")
@@ -204,18 +266,17 @@ def motor_sheet(filename,title,num,u,j,prefix,xgpio):
         rs=f"R{base+off}"; rpd=f"R{base+3+off}"
         m.part("Device:R",rs,"1 k series",35,75+off*32,"Resistor_SMD:R_0805_2012Metric"); m.two(rs,gpio,drv)
         m.part("Device:R",rpd,"10 k pulldown",65,75+off*32,"Resistor_SMD:R_0805_2012Metric"); m.two(rpd,drv,"GND")
-    rdiag=f"R{base+6}"; rdiagser=f"R{base+9}"
+    rdiag=f"R{base+6}"
     m.part("Device:R",rdiag,"10 k fault pullup",45,180,"Resistor_SMD:R_0805_2012Metric"); m.two(rdiag,diag,"3V3")
-    m.part("Device:R",rdiagser,"1 k diag series",80,180,"Resistor_SMD:R_0805_2012Metric"); m.two(rdiagser,diag,diag_gpio)
     radc=f"R{base+8}"; m.part("Device:R",radc,"4.7 k ADC protect",175,170,"Resistor_SMD:R_0805_2012Metric"); m.two(radc,cs_raw,cs_adc)
     cc=f"C{base}"; m.part("Device:C",cc,"10 nF current filter",205,185,"Capacitor_SMD:C_0805_2012Metric"); m.two(cc,cs_adc,"GND")
     dlo="D17" if prefix=="LEFT" else "D19"; dhi="D18" if prefix=="LEFT" else "D20"
-    m.part("Device:D_Schottky",dlo,"BAT54",240,170,"Diode_SMD:D_SOD-323"); m.two(dlo,"GND",cs_adc)
-    m.part("Device:D_Schottky",dhi,"BAT54",240,190,"Diode_SMD:D_SOD-323"); m.two(dhi,cs_adc,"3V3")
+    m.part("Device:D_Schottky",dlo,"BAT54 LOW CLAMP",240,170,"Diode_SMD:D_SOD-323"); m.two(dlo,cs_adc,"GND")
+    m.part("Device:D_Schottky",dhi,"BAT54 HIGH CLAMP",240,190,"Diode_SMD:D_SOD-323"); m.two(dhi,"3V3",cs_adc)
     motor_cap="C18" if prefix=="LEFT" else "C19"
-    m.part("Device:C",motor_cap,"100 nF 50 V FIT AT MOTOR",300,155,""); m.two(motor_cap,prefix+"_OUTA",prefix+"_OUTB")
+    m.part("Device:C",motor_cap,"100 nF 50 V FIT AT MOTOR - OFF BOARD",320,155,""); m.two(motor_cap,prefix+"_OUTA",prefix+"_OUTB"); m.mark_offboard(motor_cap)
     m.text("J4/J5 cable: 1 RED motor+; 2 BLACK encoder GND; 3 YELLOW encoder A; 4 GREEN encoder B; 5 BLUE encoder +3V3; 6 WHITE motor-.",200,215,1.25)
-    m.text(f"{pad_ref}: large 1.7 mm through-holes in parallel with pins 1/6 for separately soldered red and white motor-power wires.",200,225,1.25)
+    m.text(f"{pad_ref}: primary red/white motor power. JP{jpbase}/JP{jpbase+1} stay OPEN; bridge only for low-current JST-PH bench use.",200,225,1.25)
     tpbase=20 if prefix=="LEFT" else 30
     for off,(net,label) in enumerate([(branch,"VBAT"),(drv_pwm,"PWM"),(drv_ina,"INA"),(drv_inb,"INB"),(diag,"DIAG"),(cs_adc,"CS ADC"),(ea,"ENC A"),(eb,"ENC B"),("GND","GND")]):
         testpoint(m,f"TP{tpbase+off}",net,25+off*42,245,label)
@@ -251,23 +312,24 @@ e.save()
 s=Sheet("06_arm_servos.kicad_sch","Servo Power Regulator and 3-DOF Arm Control",6)
 s.text("6 V / 5 A SERVO BUCK",65,18,2.1,True)
 s.part("Regulator_Switching:TPS54560BDDA","U10","TPS54560BDDA",70,65,"Package_SO:TI_SO-PowerPAD-8_ThermalVias")
-for pin,net in [(1,"SERVO_BOOT"),(2,"ACT_VBAT"),(3,"ACTUATOR_ENABLE"),(4,"SERVO_RT"),(5,"SERVO_FB"),(6,"SERVO_COMP"),(7,"GND"),(8,"SERVO_BUCK_SW"),(9,"GND")]: s.net("U10",pin,net)
+for pin,net in [(1,"SERVO_BOOT"),(2,"ACT_VBAT"),(3,"SERVO_POWER_ENABLE"),(4,"SERVO_RT"),(5,"SERVO_FB"),(6,"SERVO_COMP"),(7,"GND"),(8,"SERVO_BUCK_SW"),(9,"GND")]: s.net("U10",pin,net)
 s.part("Device:C","C45","100 nF",115,38,"Capacitor_SMD:C_0805_2012Metric"); s.two("C45","SERVO_BOOT","SERVO_BUCK_SW")
-s.part("Device:D_Schottky","D10","B560C-13-F",115,65,"Diode_SMD:D_SMC"); s.two("D10","GND","SERVO_BUCK_SW")
+s.part("Device:D_Schottky","D10","B560C-13-F",115,65,"Diode_SMD:D_SMC"); s.two("D10","SERVO_BUCK_SW","GND")
+s.part("Device:R","R113","DNP SNUBBER 10 R",135,85,"Resistor_SMD:R_0805_2012Metric"); s.two("R113","SERVO_BUCK_SW","SERVO_SNUB")
+s.part("Device:C","C69","DNP SNUBBER 1 nF",165,85,"Capacitor_SMD:C_0805_2012Metric"); s.two("C69","SERVO_SNUB","GND"); s.mark_dnp("R113","C69")
 s.part("Device:L","L3","XAL7070-682MEC 6.8 uH",155,65,"Inductor_SMD:L_Coilcraft_XAL7070-XXX"); s.two("L3","SERVO_BUCK_SW","SERVO_6V_RAW")
-for i,ref in enumerate(["C46","C47","C64","C65"]): s.part("Device:C",ref,"2.2 uF 25 V",25+(i%2)*25,95+(i//2)*25,"Capacitor_SMD:C_0805_2012Metric"); s.two(ref,"ACT_VBAT","GND")
+for i,ref in enumerate(["C46","C47","C64","C65"]): s.part("Device:C",ref,"2.2 uF 25 V X7R",25+(i%2)*25,95+(i//2)*25,"Capacitor_SMD:C_0805_2012Metric"); s.two(ref,"ACT_VBAT","GND")
 s.part("Device:R","R104","243 k",90,115,"Resistor_SMD:R_0805_2012Metric"); s.two("R104","SERVO_RT","GND")
 s.part("Device:R","R105","66.3 k 1%",125,115,"Resistor_SMD:R_0805_2012Metric"); s.two("R105","SERVO_6V_RAW","SERVO_FB")
 s.part("Device:R","R106","10.2 k 1%",160,115,"Resistor_SMD:R_0805_2012Metric"); s.two("R106","SERVO_FB","GND")
-s.part("Device:R","R107","18.2 k 1%",195,115,"Resistor_SMD:R_0805_2012Metric"); s.two("R107","SERVO_COMP","SERVO_COMP_RC")
-s.part("Device:C","C48","5.6 nF",230,105,"Capacitor_SMD:C_0805_2012Metric"); s.two("C48","SERVO_COMP_RC","GND")
-s.part("Device:C","C49","47 pF",230,130,"Capacitor_SMD:C_0805_2012Metric"); s.two("C49","SERVO_COMP","GND")
-s.part("Device:C","C50","47 uF 10 V X7R",270,45,"Capacitor_SMD:C_1210_3225Metric"); s.two("C50","SERVO_6V_RAW","GND")
-s.part("Device:C","C51","47 uF 10 V X7R",270,70,"Capacitor_SMD:C_1210_3225Metric"); s.two("C51","SERVO_6V_RAW","GND")
-s.part("Device:C","C62","47 uF 10 V X7R",270,95,"Capacitor_SMD:C_1210_3225Metric"); s.two("C62","SERVO_6V_RAW","GND")
+s.part("Device:R","R107","15.0 k 1%",195,115,"Resistor_SMD:R_0805_2012Metric"); s.two("R107","SERVO_COMP","SERVO_COMP_RC")
+s.part("Device:C","C48","4.7 nF",230,105,"Capacitor_SMD:C_0805_2012Metric"); s.two("C48","SERVO_COMP_RC","GND")
+s.part("Device:C","C49","56 pF",230,130,"Capacitor_SMD:C_0805_2012Metric"); s.two("C49","SERVO_COMP","GND")
+for i,ref in enumerate(["C50","C51","C62","C67"]):
+    s.part("Device:C",ref,"22 uF 35 V X7R",260+(i%2)*28,45+(i//2)*30,"Capacitor_SMD:C_1210_3225Metric"); s.two(ref,"SERVO_6V_RAW","GND")
 s.part("Device:Fuse","F2","5 A MINI BLADE SERVO",305,65,"Fuse:Fuseholder_Blade_Mini_Keystone_3568"); s.two("F2","SERVO_6V_RAW","SERVO_6V")
-s.part("Device:D_TVS","D4","SMBJ8.0A",340,55,"Diode_SMD:D_SMB"); s.two("D4","GND","SERVO_6V")
-s.part("Device:C_Polarized","C40","470 uF 10 V LOW ESR",370,55,"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm"); s.two("C40","SERVO_6V","GND")
+s.part("Device:D_TVS","D4","SMBJ8.0CA BIDIRECTIONAL",340,55,"Diode_SMD:D_SMB"); s.two("D4","SERVO_6V","GND")
+s.part("Device:C_Polarized","C40","DNP OPTIONAL Panasonic EEU-FR1E471 470 uF 25 V",370,55,"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm"); s.two("C40","SERVO_6V","GND"); s.mark_dnp("C40")
 s.part("Connector_Generic:Conn_01x02","J11","SERVO 6 V TEST/OUT",350,100,"TerminalBlock:TerminalBlock_MaiXu_MX126-5.0-02P_1x02_P5.00mm"); s.net("J11",1,"SERVO_6V"); s.net("J11",2,"GND")
 
 s.text("PCA9685 SERVO PWM CONTROL",75,165,2.0,True)
@@ -290,7 +352,7 @@ def servo(idx,ref,label,x,power_net="SERVO_6V"):
 servo(0,"J12","MIUZEI 25KG 270 DEG",255,"MAIN_SERVO_8V4"); servo(1,"J13","ELBOW MG996R",315); servo(2,"J14","WRIST MG90S",375)
 s.text("Header order: pin 1 GND, pin 2 power, pin 3 PWM. J12 = 8.4 V; J13/J14 = 6 V.",225,238,1.3)
 flags(s,[("#FLG06","SERVO_6V")],245)
-for ref,net,x in [("TP50","ACT_VBAT",25),("TP51","ACTUATOR_ENABLE",75),("TP52","SERVO_6V",125),
+for ref,net,x in [("TP50","ACT_VBAT",25),("TP51","SERVO_POWER_ENABLE",75),("TP52","SERVO_6V",125),
                   ("TP53","GPIO21_I2C_SDA",175),("TP54","GPIO22_I2C_SCL",225),("TP55","GPIO32_SERVO_OE",275),("TP56","GND",325)]:
     testpoint(s,ref,net,x,145)
 s.save()
@@ -299,12 +361,14 @@ s.save()
 h=Sheet("07_main_servo_8v4.kicad_sch","Miuzei Main-Swing Servo 8.4 V Power Rail",7)
 h.text("DEDICATED 8.4 V / 5 A BUCK FOR MIUZEI 25KG 270 DEG SERVO",120,18,2.0,True)
 h.part("Regulator_Switching:TPS54560BDDA","U11","TPS54560BDDA",95,75,"Package_SO:TI_SO-PowerPAD-8_ThermalVias")
-for pin,net in [(1,"MAIN8_BOOT"),(2,"ACT_VBAT"),(3,"ACTUATOR_ENABLE"),(4,"MAIN8_RT"),(5,"MAIN8_FB"),(6,"MAIN8_COMP"),(7,"GND"),(8,"MAIN8_SW"),(9,"GND")]: h.net("U11",pin,net)
+for pin,net in [(1,"MAIN8_BOOT"),(2,"ACT_VBAT"),(3,"SERVO_POWER_ENABLE"),(4,"MAIN8_RT"),(5,"MAIN8_FB"),(6,"MAIN8_COMP"),(7,"GND"),(8,"MAIN8_SW"),(9,"GND")]: h.net("U11",pin,net)
 h.part("Device:C","C52","100 nF",145,42,"Capacitor_SMD:C_0805_2012Metric"); h.two("C52","MAIN8_BOOT","MAIN8_SW")
-h.part("Device:D_Schottky","D11","B560C-13-F",145,75,"Diode_SMD:D_SMC"); h.two("D11","GND","MAIN8_SW")
+h.part("Device:D_Schottky","D11","B560C-13-F",145,75,"Diode_SMD:D_SMC"); h.two("D11","MAIN8_SW","GND")
+h.part("Device:R","R114","DNP SNUBBER 10 R",165,95,"Resistor_SMD:R_0805_2012Metric"); h.two("R114","MAIN8_SW","MAIN8_SNUB")
+h.part("Device:C","C70","DNP SNUBBER 1 nF",195,95,"Capacitor_SMD:C_0805_2012Metric"); h.two("C70","MAIN8_SNUB","GND"); h.mark_dnp("R114","C70")
 h.part("Device:L","L4","XAL7070-682MEC 6.8 uH",195,75,"Inductor_SMD:L_Coilcraft_XAL7070-XXX"); h.two("L4","MAIN8_SW","MAIN8_RAW")
 for i,ref in enumerate(["C53","C54","C55","C56"]):
-    h.part("Device:C",ref,"2.2 uF 25 V",30+(i%2)*25,60+(i//2)*35,"Capacitor_SMD:C_0805_2012Metric"); h.two(ref,"ACT_VBAT","GND")
+    h.part("Device:C",ref,"2.2 uF 25 V X7R",30+(i%2)*25,60+(i//2)*35,"Capacitor_SMD:C_0805_2012Metric"); h.two(ref,"ACT_VBAT","GND")
 h.part("Device:R","R108","243 k",70,135,"Resistor_SMD:R_0805_2012Metric"); h.two("R108","MAIN8_RT","GND")
 h.part("Device:R","R109","96.9 k 1%",120,135,"Resistor_SMD:R_0805_2012Metric"); h.two("R109","MAIN8_RAW","MAIN8_FB")
 h.part("Device:R","R110","10.2 k 1%",165,135,"Resistor_SMD:R_0805_2012Metric"); h.two("R110","MAIN8_FB","GND")
@@ -312,17 +376,17 @@ h.part("Device:R","R111","17.8 k 1%",210,135,"Resistor_SMD:R_0805_2012Metric"); 
 h.part("Device:C","C57","5.6 nF",250,120,"Capacitor_SMD:C_0805_2012Metric"); h.two("C57","MAIN8_COMP_RC","GND")
 h.part("Device:C","C58","47 pF",250,150,"Capacitor_SMD:C_0805_2012Metric"); h.two("C58","MAIN8_COMP","GND")
 for i,ref in enumerate(["C59","C60","C63","C66"]):
-    h.part("Device:C",ref,"CL32B226KLV6PN 22 uF 35 V X7R",280+(i%2)*28,50+(i//2)*30,"Capacitor_SMD:C_1210_3225Metric"); h.two(ref,"MAIN8_RAW","GND")
+    h.part("Device:C",ref,"22 uF 35 V X7R",280+(i%2)*28,50+(i//2)*30,"Capacitor_SMD:C_1210_3225Metric"); h.two(ref,"MAIN8_RAW","GND")
 h.part("Device:Fuse","F4","5 A MINI BLADE MAIN SERVO",330,75,"Fuse:Fuseholder_Blade_Mini_Keystone_3568"); h.two("F4","MAIN8_RAW","MAIN_SERVO_8V4")
-h.part("Device:D_TVS","D12","SMBJ10A",370,60,"Diode_SMD:D_SMB"); h.two("D12","GND","MAIN_SERVO_8V4")
-h.part("Device:C_Polarized","C61","220 uF 16 V LOW ESR",370,100,"Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"); h.two("C61","MAIN_SERVO_8V4","GND")
+h.part("Device:D_TVS","D12","SMBJ10CA BIDIRECTIONAL",370,60,"Diode_SMD:D_SMB"); h.two("D12","MAIN_SERVO_8V4","GND")
+h.part("Device:C_Polarized","C61","DNP OPTIONAL Panasonic EEU-FR1E221 220 uF 25 V",370,100,"Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"); h.two("C61","MAIN_SERVO_8V4","GND"); h.mark_dnp("C61")
 h.part("Connector_Generic:Conn_01x02","J17","8.4 V TEST / AUX OUT",330,145,"TerminalBlock:TerminalBlock_MaiXu_MX126-5.0-02P_1x02_P5.00mm"); h.net("J17",1,"MAIN_SERVO_8V4"); h.net("J17",2,"GND")
 h.part("Device:R","R112","2.2 k",300,190,"Resistor_SMD:R_0805_2012Metric"); h.two("R112","MAIN_SERVO_8V4","LED_MAIN8")
-h.part("Device:LED","D13","PURPLE 8.4 V",350,190,"LED_SMD:LED_0805_2012Metric"); h.two("D13","LED_MAIN8","GND")
+h.part("Device:LED","D13","PURPLE 8.4 V",350,190,"LED_SMD:LED_0805_2012Metric"); h.two("D13","GND","LED_MAIN8")
 h.text("U11 uses 96.9 k / 10.2 k feedback resistors for approximately 8.40 V. J12 is the only servo powered from this rail.",180,210,1.3)
 h.text("J13 MG996R and J14 MG90S remain on the separate regulated 6 V rail.",145,220,1.3)
 flags(h,[("#FLG08","MAIN_SERVO_8V4")],245)
-for ref,net,x in [("TP60","ACT_VBAT",50),("TP61","ACTUATOR_ENABLE",110),("TP62","MAIN_SERVO_8V4",180),("TP63","GND",260)]:
+for ref,net,x in [("TP60","ACT_VBAT",50),("TP61","SERVO_POWER_ENABLE",110),("TP62","MAIN_SERVO_8V4",180),("TP63","GND",260)]:
     testpoint(h,ref,net,x,170)
 h.save()
 

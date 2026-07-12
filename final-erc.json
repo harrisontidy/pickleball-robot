@@ -1,71 +1,26 @@
-{
-    "$schema": "https://schemas.kicad.org/erc.v1.json",
-    "coordinate_units": "mm",
-    "date": "2026-07-12T15:09:57",
-    "ignored_checks": [
-        {
-            "description": "Global label only appears once in the schematic",
-            "key": "single_global_label"
-        },
-        {
-            "description": "Four connection points are joined together",
-            "key": "four_way_junction"
-        },
-        {
-            "description": "SPICE model issue",
-            "key": "simulation_model_issue"
-        },
-        {
-            "description": "Assigned footprint doesn't match footprint filters",
-            "key": "footprint_filter"
-        }
-    ],
-    "included_severities": [
-        "error",
-        "warning"
-    ],
-    "kicad_version": "10.0.4",
-    "sheets": [
-        {
-            "path": "/",
-            "uuid_path": "/e446fdd7-1073-4cff-9c2d-f103458c4377",
-            "violations": []
-        },
-        {
-            "path": "/01 Power and Pi/",
-            "uuid_path": "/e446fdd7-1073-4cff-9c2d-f103458c4377/fc69d7ea-e8cb-4e9e-a8ce-bb7165796a35",
-            "violations": []
-        },
-        {
-            "path": "/02 ESP32 and Pi UART/",
-            "uuid_path": "/e446fdd7-1073-4cff-9c2d-f103458c4377/18023edd-1baf-4fde-82c9-89a8aa31ca48",
-            "violations": []
-        },
-        {
-            "path": "/03 Left Motor/",
-            "uuid_path": "/e446fdd7-1073-4cff-9c2d-f103458c4377/491e0760-ac50-485f-bffe-1c9e521868a7",
-            "violations": []
-        },
-        {
-            "path": "/04 Right Motor/",
-            "uuid_path": "/e446fdd7-1073-4cff-9c2d-f103458c4377/8d765b35-7801-40a1-b18c-201ff772e4b2",
-            "violations": []
-        },
-        {
-            "path": "/05 Encoders/",
-            "uuid_path": "/e446fdd7-1073-4cff-9c2d-f103458c4377/d7cbc38e-425e-4649-8255-492778b727d9",
-            "violations": []
-        },
-        {
-            "path": "/06 Arm Servos/",
-            "uuid_path": "/e446fdd7-1073-4cff-9c2d-f103458c4377/4ca7a4f8-403d-4eb4-accb-244361cfd090",
-            "violations": []
-        },
-        {
-            "path": "/07 Main Servo 8.4V/",
-            "uuid_path": "/e446fdd7-1073-4cff-9c2d-f103458c4377/b362603b-535e-4a9f-b321-df392e31a60a",
-            "violations": []
-        }
-    ],
-    "source": "pickleball_robot_controller.kicad_sch"
-}
+ERC report (2026-07-12T16:04:20, Encoding UTF8)
+Report includes: Errors, Warnings
+
+***** Sheet /
+
+***** Sheet /01 Power and Pi/
+
+***** Sheet /02 ESP32 and Pi UART/
+
+***** Sheet /03 Left Motor/
+
+***** Sheet /04 Right Motor/
+
+***** Sheet /05 Encoders/
+
+***** Sheet /06 Arm Servos/
+
+***** Sheet /07 Main Servo 8.4V/
+
+ ** ERC messages: 0  Errors 0  Warnings 0
+
+ ** Ignored checks:
+    - Global label only appears once in the schematic
+    - Four connection points are joined together
+    - SPICE model issue
+    - Assigned footprint doesn't match footprint filters

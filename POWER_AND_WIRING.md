@@ -16,7 +16,9 @@
 
 The E-stop removes wheel and servo energy while leaving the Pi/ESP alive to log the event and shut down cleanly. J18 is a real series connection: actuators remain off if the external switch is not connected/closed.
 
-`ACTUATOR_ENABLE` from Raspberry Pi GPIO17 must be driven high before U10/U11 start. It defaults low. Wheel drivers remain electrically powered after J18 closes, but their PWM/INA/INB inputs have firm hardware pull-downs.
+`SERVO_POWER_ENABLE` from Raspberry Pi GPIO17 must be driven high before U10/U11 start. It defaults low. Wheel drivers remain electrically powered after J18 closes, but their PWM/INA/INB inputs have firm hardware pull-downs.
+
+D21 is a local bidirectional TVS on `ACT_VBAT`, so motor regeneration remains clamped even when J18 opens. J18 and the external latching switch must be explicitly DC-rated for motor interruption and inrush; an AC-only contact rating is not sufficient.
 
 ## Battery limits
 
@@ -56,3 +58,5 @@ Use a four-layer, preferably 2 oz outer-copper board. Width depends on copper th
 5. Check regulator startup, ripple, switch node, and temperature before connecting electronics.
 6. Test one motor driver with its wheel unloaded, then stalled only long enough for a controlled current measurement.
 7. Connect the Pi and servos last. Never connect Pi USB-C power and J9 power simultaneously.
+
+On Pi 5, configure `dtoverlay=uart0-pi5`, disable the serial console, and validate the direct 5.1 V supply before enabling the higher USB-current setting. J9 bypasses USB-C PD negotiation.
