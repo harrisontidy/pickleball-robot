@@ -118,7 +118,7 @@ Never power the ESP32 through Micro-USB and EXT_5V simultaneously. Keep all copp
 The PCB provides two physically separate Pi interfaces:
 
 1. **U4/F3/J9 high-current Pi power rail.** U4 is a TPS54560BDDA buck regulator using TI's documented 12 V to 5 V / 5 A reference values. F3 protects the output, and J9 is a Mini-Fit Jr connector with two parallel 5 V contacts and two parallel ground contacts. The LM2596 control regulator must never power the Pi.
-2. **J10 low-current UART/control connector.** Use an 8-pin JST-XH connector: `3V3 reference`, `GND`, `PI_TX`, `PI_RX`, `PI_ENABLE`, `CTRL_FAULT`, `I2C_SDA`, `I2C_SCL`.
+2. **J10 low-current UART/control connector.** J10 is a normal 1x8, 2.54 mm male header so individual female Dupont wires can connect directly to the Raspberry Pi GPIO header. Its pins are: `unused`, `GND`, `PI_TX`, `PI_RX`, `PI_ENABLE`, `CTRL_FAULT`, `I2C_SDA`, `I2C_SCL`.
 
 UART wiring:
 
@@ -128,7 +128,7 @@ ESP32 GPIO1 / TXD0 -> 1k series -> Raspberry Pi GPIO15 / RXD
 Pi GND -------------------------------> controller GND
 ```
 
-Both boards use 3.3 V UART logic, so no level shifter is required. Do not connect the two 3.3 V rails together as power sources; the J10 3V3 pin is a reference/identification pin and should be fitted through a 1 kΩ resistor or left unconnected until the final cable direction is chosen. The ESP32 USB-UART bridge also uses RXD0/TXD0, so do not actively drive the Pi UART and Micro-USB serial adapter at the same time.
+Both boards use 3.3 V UART logic, so no level shifter is required. J10 pin 1 is deliberately unused; do not join the Pi and ESP32 3.3 V rails. The ESP32 USB-UART bridge also uses RXD0/TXD0, so do not actively drive the Pi UART and Micro-USB serial adapter at the same time.
 
 The optional I2C pins are included for future expansion, but UART is the recommended first Pi-to-ESP32 link.
 

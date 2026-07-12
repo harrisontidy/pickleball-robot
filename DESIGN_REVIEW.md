@@ -14,7 +14,7 @@
 
 - KiCad electrical-rules check: **0 errors, 0 warnings**.
 - BOM exported from the schematic.
-- A five-page readable schematic companion is exported as `pickleball_robot_controller.pdf`; the original crowded KiCad one-sheet export is deliberately not used as the human-facing PDF.
+- The actual KiCad project is split into a hierarchy overview plus six readable circuit sheets. `pickleball_robot_controller.pdf` is a seven-page export made directly by KiCad—there is no HTML or presentation-style substitute.
 - Exact net names and every part/value remain available in the KiCad file and BOM.
 
 ## Still required before ordering a PCB
