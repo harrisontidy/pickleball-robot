@@ -16,7 +16,9 @@ Use one 3S LiPo battery. Do not add a second battery for the Raspberry Pi.
 
 The Pi must use its own 5 V / 5 A regulator because the board's small LM2596S logic converter is only for the ESP32, encoders, LEDs, and PCA9685. A Pi 5 plus Hailo can need substantially more current than that small rail can safely supply.
 
-For a first build, use an external high-quality 5 V / 5 A buck regulator between the 3S LiPo and the board's `PI_5V_5A_INPUT` connector. The Pololu D36V50F5 is one appropriate 5.5 A option. A later PCB revision can integrate an LM2678S-5.0 5 A buck circuit, but it needs careful layout and thermal design.
+This revision includes that regulator on the PCB: **U4, TPS54560BDDA**, a 4.5–60 V, 5 A buck controller with its external diode, inductor, feedback, compensation, input capacitors, output capacitors, output fuse, and Mini-Fit Jr Pi connector. The 12 V nominal → 5 V / 5 A component values follow TI's documented reference circuit. The Pi rail is `PI_5V`; it is protected by F3 and must only feed the Pi/Hailo branch.
+
+The current servo power connector remains an input for a separately regulated 6 V / 10 A supply. That is deliberate: a safe custom 10 A servo regulator needs a substantially more demanding high-current PCB/thermal design than the Pi converter. Do not put 3S battery voltage directly into J11 or into any servo.
 
 The arm servo rail also needs its own **regulated** 6 V, high-current supply. Do not attach the 3S LiPo directly to the servo connectors.
 
@@ -45,4 +47,4 @@ These are conservative starting values. Measure the actual wheel-motor stall cur
 - Use multiple vias in parallel when high-current paths must change layers.
 - Keep motor and servo returns away from the ESP32/Pi logic ground paths; join them at the battery/distribution star point.
 
-Do not finalize this layout until the wheel-motor stall current has been measured.
+Do not finalize this layout until the wheel-motor stall current has been measured and the two buck regulators have been checked against their manufacturer layout guidance.

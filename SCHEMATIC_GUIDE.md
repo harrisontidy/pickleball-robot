@@ -88,7 +88,7 @@ Keep SW_NODE extremely small. Do not run it under the ESP32 antenna or encoder t
 
 ## Sheet 3 — ESP32-PICO-KIT V4.1 carrier
 
-Use two 1x17, 2.54 mm female socket strips. Verify row spacing with calipers before placing footprints. The official schematic labels the populated pins as positions 4–20 of each 20-pin connector; the three antenna-end flash pads are not installed into the carrier sockets.
+Use two 1x17, 2.54 mm female socket strips. The confirmed socket-row spacing is 17.78 mm. The official schematic labels the populated pins as positions 4–20 of each 20-pin connector; the three antenna-end flash pads are not installed into the carrier sockets.
 
 ### Supporting parts
 
@@ -117,7 +117,7 @@ Never power the ESP32 through Micro-USB and EXT_5V simultaneously. Keep all copp
 
 The PCB provides two physically separate Pi interfaces:
 
-1. **J8/J9 high-current power pass-through.** J8 accepts regulated 5 V from a separate 5 V/5 A supply. J9 is a four-contact Mini-Fit Jr output with two parallel 5 V contacts and two parallel ground contacts. The LM2596 control regulator must never power the Pi.
+1. **U4/F3/J9 high-current Pi power rail.** U4 is a TPS54560BDDA buck regulator using TI's documented 12 V to 5 V / 5 A reference values. F3 protects the output, and J9 is a Mini-Fit Jr connector with two parallel 5 V contacts and two parallel ground contacts. The LM2596 control regulator must never power the Pi.
 2. **J10 low-current UART/control connector.** Use an 8-pin JST-XH connector: `3V3 reference`, `GND`, `PI_TX`, `PI_RX`, `PI_ENABLE`, `CTRL_FAULT`, `I2C_SDA`, `I2C_SCL`.
 
 UART wiring:

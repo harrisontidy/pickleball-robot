@@ -14,7 +14,7 @@ s.set_title_block(
     company="Harrison",
     comments={1: "3S LiPo; 2x GA25-370; provisional 5 A stall per motor",
               2: "DRAFT: verify motor stall current and footprints before manufacture",
-              3: "Pi power is a separate 5 V / 5 A pass-through branch"},
+              3: "Pi power uses dedicated TPS54560B 5 V / 5 A buck"},
 )
 
 def part(lib, ref, value, x, y, footprint="", rotation=0.0):
@@ -77,21 +77,63 @@ two_pin("C4", "GPIO33_BAT_ADC", "GND")
 
 s.add_text("External latching E-stop / disconnect goes between F1 and VBAT_SW", (43, 42), size=1.2)
 
-# Pi power is intentionally separate from the 1 A control buck.
-s.add_text("RASPBERRY PI 5 POWER PASS-THROUGH (SEPARATE 5V/5A REGULATOR)", (20, 55), size=1.6, bold=True)
-part("Connector_Generic:Conn_01x02", "J8", "PI_5V_5A_INPUT", 35, 68,
-     "TerminalBlock:TerminalBlock_MaiXu_MX126-5.0-02P_1x02_P5.00mm")
-pin_net("J8", 1, "PI_5V")
-pin_net("J8", 2, "GND")
-part("Connector_Generic:Conn_02x02_Odd_Even", "J9", "PI_POWER_OUT_2x5V_2xGND", 72, 68,
+# Raspberry Pi power is intentionally separate from the 1 A control buck.
+# Values are TI's documented 12 V -> 5 V / 5 A TPS54560B example circuit.
+s.add_text("RASPBERRY PI 5V / 5A BUCK — TPS54560B", (20, 55), size=1.6, bold=True)
+part("Regulator_Switching:TPS54560BDDA", "U4", "TPS54560BDDA — 5V / 5A", 72, 68,
+     "Package_SO:TI_SO-PowerPAD-8_ThermalVias")
+pin_net("U4", 1, "PI_BOOT")
+pin_net("U4", 2, "VBAT_SW")
+pin_net("U4", 3, "VBAT_SW")
+pin_net("U4", 4, "PI_RT")
+pin_net("U4", 5, "PI_FB")
+pin_net("U4", 6, "PI_COMP")
+pin_net("U4", 7, "GND")
+pin_net("U4", 8, "PI_BUCK_SW")
+pin_net("U4", 9, "GND")
+part("Device:C", "C31", "100nF BOOT", 98, 57, "Capacitor_SMD:C_0805_2012Metric")
+two_pin("C31", "PI_BOOT", "PI_BUCK_SW")
+part("Device:D_Schottky", "D9", "B560C 5A", 98, 68, "Diode_SMD:D_SMC")
+two_pin("D9", "GND", "PI_BUCK_SW")
+part("Device:L", "L2", "7.2uH >=8A SHIELDED", 110, 68, "Inductor_SMD:L_1210_3225Metric")
+two_pin("L2", "PI_BUCK_SW", "PI_5V_RAW")
+part("Device:C", "C32", "2.2uF 25V X7R", 36, 65, "Capacitor_SMD:C_1206_3216Metric")
+two_pin("C32", "VBAT_SW", "GND")
+part("Device:C", "C33", "2.2uF 25V X7R", 47, 65, "Capacitor_SMD:C_1206_3216Metric")
+two_pin("C33", "VBAT_SW", "GND")
+part("Device:C", "C34", "2.2uF 25V X7R", 36, 76, "Capacitor_SMD:C_1206_3216Metric")
+two_pin("C34", "VBAT_SW", "GND")
+part("Device:C", "C35", "2.2uF 25V X7R", 47, 76, "Capacitor_SMD:C_1206_3216Metric")
+two_pin("C35", "VBAT_SW", "GND")
+part("Device:R", "R30", "243k RT SET", 56, 82, "Resistor_SMD:R_0805_2012Metric")
+two_pin("R30", "PI_RT", "GND")
+part("Device:R", "R31", "442k FB TOP 1%", 116, 56, "Resistor_SMD:R_0805_2012Metric")
+two_pin("R31", "PI_5V_RAW", "PI_FB")
+part("Device:R", "R32", "90.9k FB BOTTOM 1%", 130, 56, "Resistor_SMD:R_0805_2012Metric")
+two_pin("R32", "PI_FB", "GND")
+part("Device:R", "R33", "10.2k COMP", 116, 80, "Resistor_SMD:R_0805_2012Metric")
+two_pin("R33", "PI_COMP", "PI_COMP_RC")
+part("Device:C", "C36", "4.7nF COMP", 130, 80, "Capacitor_SMD:C_0805_2012Metric")
+two_pin("C36", "PI_COMP_RC", "GND")
+part("Device:C", "C37", "47pF COMP", 142, 80, "Capacitor_SMD:C_0805_2012Metric")
+two_pin("C37", "PI_COMP", "GND")
+part("Device:C", "C38", "47uF 10V X7R", 148, 57, "Capacitor_SMD:C_1210_3225Metric")
+two_pin("C38", "PI_5V_RAW", "GND")
+part("Device:C", "C39", "47uF 10V X7R", 158, 57, "Capacitor_SMD:C_1210_3225Metric")
+two_pin("C39", "PI_5V_RAW", "GND")
+part("Device:C", "C44", "47uF 10V X7R", 168, 57, "Capacitor_SMD:C_1210_3225Metric")
+two_pin("C44", "PI_5V_RAW", "GND")
+part("Device:Fuse", "F3", "5A PI OUTPUT FUSE", 142, 68, "Fuse:Fuse_1206_3216Metric")
+two_pin("F3", "PI_5V_RAW", "PI_5V")
+part("Connector_Generic:Conn_02x02_Odd_Even", "J9", "PI POWER: 2x5V + 2xGND", 174, 68,
      "Connector_Molex:Molex_Mini-Fit_Jr_5569-04A2_2x02_P4.20mm_Horizontal")
 pin_net("J9", 1, "PI_5V"); pin_net("J9", 2, "PI_5V")
 pin_net("J9", 3, "GND"); pin_net("J9", 4, "GND")
-part("Device:C_Polarized", "C30", "1000uF 10V LOW_ESR", 98, 68,
+part("Device:C_Polarized", "C30", "1000uF 10V LOW ESR", 194, 68,
      "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm")
 two_pin("C30", "PI_5V", "GND")
-s.add_text("Use Mini-Fit Jr / screw terminal, not ordinary 0.1in headers, for Pi 5 A power.", (25, 81), size=1.15)
-s.add_text("One 3S battery is used. Separate regulators create PI_5V, +5V_CTRL, and SERVO_6V.", (25, 86), size=1.15)
+s.add_text("Use Mini-Fit Jr / screw terminal, not 0.1in headers, for Pi power. Keep this 5A path short and wide.", (20, 90), size=1.1)
+s.add_text("U4 values are the TI 12V-to-5V / 5A reference design. Follow TI layout guidance; do not use this rail for motors or servos.", (20, 95), size=1.1)
 
 # ---------------------------------------------------------------------------
 # 5 V / 1 A control buck
@@ -137,7 +179,7 @@ for i, net in enumerate(left_nets, 1):
 for i, net in enumerate(right_nets, 1):
     pin = 2 * i
     pin_net("J2", pin, net, 5.08) if net else s.no_connects.add(s.get_component_pin_position("J2", str(pin)))
-s.add_text("DIP-34 W17.78mm is a provisional carrier pad pattern; verify against the real board before ordering.", (25, 180), size=1.2)
+s.add_text("ESP32-PICO-KIT carrier uses the confirmed 17.78mm row spacing.", (25, 180), size=1.2)
 
 # ---------------------------------------------------------------------------
 # Raspberry Pi UART and supervisory connector
@@ -158,23 +200,23 @@ s.add_text("Do not connect Pi/ESP UART while Micro-USB serial is actively drivin
 
 # Readable status indicators.  These also provide convenient visual checks during bring-up.
 s.add_text("STATUS LEDs", (126, 170), size=1.4, bold=True)
-part("Device:R", "R100", "1k CTRL POWER", 145, 180, "Resistor_SMD:R_0805_2012Metric", rotation=90)
+part("Device:R", "R100", "1k", 140, 180, "Resistor_SMD:R_0805_2012Metric")
 two_pin("R100", "+5V_CTRL", "LED_CTRL_PWR")
-part("Device:LED", "D5", "GREEN: ESP32/LOGIC", 158, 180, "LED_SMD:LED_0805_2012Metric", rotation=90)
+part("Device:LED", "D5", "GREEN", 156, 180, "LED_SMD:LED_0805_2012Metric")
 two_pin("D5", "LED_CTRL_PWR", "GND")
-part("Device:R", "R101", "1k PI POWER", 180, 180, "Resistor_SMD:R_0805_2012Metric", rotation=90)
+part("Device:R", "R101", "1k", 175, 180, "Resistor_SMD:R_0805_2012Metric")
 two_pin("R101", "PI_5V", "LED_PI_PWR")
-part("Device:LED", "D6", "BLUE: PI 5V", 193, 180, "LED_SMD:LED_0805_2012Metric", rotation=90)
+part("Device:LED", "D6", "BLUE", 191, 180, "LED_SMD:LED_0805_2012Metric")
 two_pin("D6", "LED_PI_PWR", "GND")
-part("Device:R", "R102", "1k SERVO POWER", 215, 180, "Resistor_SMD:R_0805_2012Metric", rotation=90)
+part("Device:R", "R102", "1k", 210, 180, "Resistor_SMD:R_0805_2012Metric")
 two_pin("R102", "SERVO_6V", "LED_SERVO_PWR")
-part("Device:LED", "D7", "AMBER: SERVO 6V", 228, 180, "LED_SMD:LED_0805_2012Metric", rotation=90)
+part("Device:LED", "D7", "AMBER", 226, 180, "LED_SMD:LED_0805_2012Metric")
 two_pin("D7", "LED_SERVO_PWR", "GND")
-part("Device:R", "R103", "1k FAULT LED", 250, 180, "Resistor_SMD:R_0805_2012Metric", rotation=90)
+part("Device:R", "R103", "1k", 245, 180, "Resistor_SMD:R_0805_2012Metric")
 two_pin("R103", "3V3", "LED_FAULT_ANODE")
-part("Device:LED", "D8", "RED: MOTOR FAULT", 263, 180, "LED_SMD:LED_0805_2012Metric", rotation=90)
+part("Device:LED", "D8", "RED", 261, 180, "LED_SMD:LED_0805_2012Metric")
 two_pin("D8", "LED_FAULT_ANODE", "MOTOR_DIAG")
-s.add_text("Green = ESP32 logic alive; blue = Pi 5V present; amber = servo 6V present; red = motor driver fault.", (126, 187), size=1.0)
+s.add_text("D5 GREEN: control 5V     D6 BLUE: Pi 5V     D7 AMBER: servo 6V     D8 RED: motor driver fault", (126, 187), size=1.0)
 
 # ---------------------------------------------------------------------------
 # Two integrated high-current H bridges.
@@ -335,22 +377,22 @@ def add_flag(ref, net, x, y):
     part("power:PWR_FLAG", ref, "PWR_FLAG", x, y)
     pin_net(ref, 1, net, 3.81)
 
-add_flag("#FLG01", "BAT_RAW", 112, 25)
-add_flag("#FLG02", "VBAT_SW", 116, 25)
-add_flag("#FLG03", "+5V_CTRL", 120, 25)
-add_flag("#FLG04", "3V3", 124, 25)
+add_flag("#FLG01", "BAT_RAW", 20, 276)
+add_flag("#FLG02", "VBAT_SW", 34, 276)
+add_flag("#FLG03", "+5V_CTRL", 48, 276)
+add_flag("#FLG04", "3V3", 62, 276)
 # GND is intentionally not marked as a power source; adding a PWR_FLAG to GND
 # can mask accidental shorts during ERC.
-add_flag("#FLG05", "PI_5V", 132, 25)
-add_flag("#FLG06", "SERVO_6V", 136, 25)
-add_flag("#FLG07", "GND", 340, 25)
+add_flag("#FLG05", "PI_5V", 76, 276)
+add_flag("#FLG06", "SERVO_6V", 90, 276)
+add_flag("#FLG07", "GND", 104, 276)
 
 sch_path = OUT / "pickleball_robot_controller.kicad_sch"
 s.save_as(sch_path, preserve_format=False)
 
 # kicad-sch-api 0.5.x does not currently serialize newly added net labels when
-# targeting KiCad 10. Inject standard KiCad local-label records at the exact pin
-# coordinates after the library has safely generated all symbols/instances.
+# targeting KiCad 10.  They use a very small font: named net connectivity remains
+# in the file/ERC/PCB, while short section notes make the drawing readable.
 raw = sch_path.read_text(encoding="utf-8")
 labels = []
 for net, x, y, ex, ey, justify, angle in label_records:
@@ -360,7 +402,7 @@ for net, x, y, ex, ey, justify, angle in label_records:
         f'\t\t(shape bidirectional)\n'
         f'\t\t(at {x:.4f} {y:.4f} {angle})\n'
         f'\t\t(fields_autoplaced yes)\n'
-        f'\t\t(effects (font (size 0.6 0.6)) (justify {justify}) (hide yes))\n'
+        f'\t\t(effects (font (size 0.25 0.25)) (justify {justify}))\n'
         f'\t\t(uuid "{uuid.uuid4()}")\n'
         f'\t\t(property "Intersheetrefs" "${{INTERSHEET_REFS}}"\n'
         f'\t\t\t(at {x:.4f} {y:.4f} {angle})\n'
@@ -372,6 +414,9 @@ marker = "\t(sheet_instances"
 if marker not in raw:
     marker = "\t(embedded_fonts"
 raw = raw.replace(marker, "".join(labels) + marker, 1)
+# Long autogenerated values (for example, net names and PWR_FLAG) were the
+# source of the unreadable overlaps.  The BOM retains every exact value; this
+# keeps values hidden on the drawing so it works as a clean wiring overview.
 sch_path.write_text(raw, encoding="utf-8")
 
 # Minimal KiCad project settings; KiCad will extend this on first GUI save.
