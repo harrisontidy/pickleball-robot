@@ -17,9 +17,9 @@ s.set_title_block(
               3: "Pi power is a separate 5 V / 5 A pass-through branch"},
 )
 
-def part(lib, ref, value, x, y, footprint=""):
+def part(lib, ref, value, x, y, footprint="", rotation=0.0):
     return s.components.add(lib, reference=ref, value=value,
-                            position=(x, y), footprint=footprint)
+                            position=(x, y), footprint=footprint, rotation=rotation)
 
 def pin_net(ref, pin, net, length=7.62):
     """Record a short outward wire and label for a component pin."""
@@ -91,6 +91,7 @@ part("Device:C_Polarized", "C30", "1000uF 10V LOW_ESR", 98, 68,
      "Capacitor_THT:CP_Radial_D10.0mm_P5.00mm")
 two_pin("C30", "PI_5V", "GND")
 s.add_text("Use Mini-Fit Jr / screw terminal, not ordinary 0.1in headers, for Pi 5 A power.", (25, 81), size=1.15)
+s.add_text("One 3S battery is used. Separate regulators create PI_5V, +5V_CTRL, and SERVO_6V.", (25, 86), size=1.15)
 
 # ---------------------------------------------------------------------------
 # 5 V / 1 A control buck
@@ -154,6 +155,26 @@ part("Device:R", "R42", "10k", 185, 140, "Resistor_SMD:R_0805_2012Metric")
 two_pin("R42", "PI_ENABLE", "3V3")
 s.add_text("UART is 3.3V: Pi GPIO14 TX -> ESP RX0; ESP TX0 -> Pi GPIO15 RX.", (126, 158), size=1.15)
 s.add_text("Do not connect Pi/ESP UART while Micro-USB serial is actively driving RX0/TX0.", (126, 163), size=1.15)
+
+# Readable status indicators.  These also provide convenient visual checks during bring-up.
+s.add_text("STATUS LEDs", (126, 170), size=1.4, bold=True)
+part("Device:R", "R100", "1k CTRL POWER", 145, 180, "Resistor_SMD:R_0805_2012Metric", rotation=90)
+two_pin("R100", "+5V_CTRL", "LED_CTRL_PWR")
+part("Device:LED", "D5", "GREEN: ESP32/LOGIC", 158, 180, "LED_SMD:LED_0805_2012Metric", rotation=90)
+two_pin("D5", "LED_CTRL_PWR", "GND")
+part("Device:R", "R101", "1k PI POWER", 180, 180, "Resistor_SMD:R_0805_2012Metric", rotation=90)
+two_pin("R101", "PI_5V", "LED_PI_PWR")
+part("Device:LED", "D6", "BLUE: PI 5V", 193, 180, "LED_SMD:LED_0805_2012Metric", rotation=90)
+two_pin("D6", "LED_PI_PWR", "GND")
+part("Device:R", "R102", "1k SERVO POWER", 215, 180, "Resistor_SMD:R_0805_2012Metric", rotation=90)
+two_pin("R102", "SERVO_6V", "LED_SERVO_PWR")
+part("Device:LED", "D7", "AMBER: SERVO 6V", 228, 180, "LED_SMD:LED_0805_2012Metric", rotation=90)
+two_pin("D7", "LED_SERVO_PWR", "GND")
+part("Device:R", "R103", "1k FAULT LED", 250, 180, "Resistor_SMD:R_0805_2012Metric", rotation=90)
+two_pin("R103", "3V3", "LED_FAULT_ANODE")
+part("Device:LED", "D8", "RED: MOTOR FAULT", 263, 180, "LED_SMD:LED_0805_2012Metric", rotation=90)
+two_pin("D8", "LED_FAULT_ANODE", "MOTOR_DIAG")
+s.add_text("Green = ESP32 logic alive; blue = Pi 5V present; amber = servo 6V present; red = motor driver fault.", (126, 187), size=1.0)
 
 # ---------------------------------------------------------------------------
 # Two integrated high-current H bridges.
@@ -245,22 +266,22 @@ s.add_text("5. External fuse and latching E-stop are mandatory.", (248, 164), si
 # Three-degree-of-freedom servo subsystem.
 # The PCB controls PWM; a separate regulated 6 V / 10 A source supplies power.
 # ---------------------------------------------------------------------------
-s.add_text("3-DOF ARM SERVO CONTROL", (248, 178), size=1.8, bold=True)
-part("Connector_Generic:Conn_01x02", "J11", "SERVO_6V_10A_INPUT", 260, 194,
+s.add_text("3-DOF ARM SERVO CONTROL", (248, 168), size=1.8, bold=True)
+part("Connector_Generic:Conn_01x02", "J11", "SERVO_6V_10A_INPUT", 260, 182,
      "TerminalBlock:TerminalBlock_MaiXu_MX126-5.0-02P_1x02_P5.00mm")
 pin_net("J11", 1, "SERVO_6V_RAW"); pin_net("J11", 2, "GND")
-part("Device:Fuse", "F2", "15A_EXTERNAL_SERVO_FUSE", 285, 188,
+part("Device:Fuse", "F2", "15A_EXTERNAL_SERVO_FUSE", 285, 176,
      "Fuse:Fuse_Blade_ATO_directSolder")
 two_pin("F2", "SERVO_6V_RAW", "SERVO_6V")
-part("Device:D_TVS", "D4", "SMBJ8.0A", 304, 188, "Diode_SMD:D_SMB")
+part("Device:D_TVS", "D4", "SMBJ8.0A", 304, 176, "Diode_SMD:D_SMB")
 two_pin("D4", "GND", "SERVO_6V")
-part("Device:C_Polarized", "C40", "2200uF 10V LOW_ESR", 324, 188,
+part("Device:C_Polarized", "C40", "2200uF 10V LOW_ESR", 324, 176,
      "Capacitor_THT:CP_Radial_D12.5mm_P5.00mm")
 two_pin("C40", "SERVO_6V", "GND")
-part("Device:C", "C41", "100nF", 340, 188, "Capacitor_SMD:C_0805_2012Metric")
+part("Device:C", "C41", "100nF", 340, 176, "Capacitor_SMD:C_0805_2012Metric")
 two_pin("C41", "SERVO_6V", "GND")
 
-part("Driver_LED:PCA9685PW", "U5", "PCA9685PW", 280, 230,
+part("Driver_LED:PCA9685PW", "U5", "PCA9685PW", 280, 208,
      "Package_SO:TSSOP-28_4.4x9.7mm_P0.65mm")
 # Address 0x40, internal oscillator, I2C and supply.
 for p in [1, 2, 3, 4, 5, 24]: pin_net("U5", p, "GND")
@@ -276,15 +297,15 @@ pin_net("U5", 8, "SERVO2_PWM_RAW")
 for p in range(9, 23):
     s.no_connects.add(s.get_component_pin_position("U5", str(p)))
 
-part("Device:C", "C42", "100nF", 322, 220, "Capacitor_SMD:C_0805_2012Metric")
+part("Device:C", "C42", "100nF", 322, 198, "Capacitor_SMD:C_0805_2012Metric")
 two_pin("C42", "3V3", "GND")
-part("Device:C", "C43", "10uF 6.3V", 322, 230, "Capacitor_SMD:C_1206_3216Metric")
+part("Device:C", "C43", "10uF 6.3V", 322, 208, "Capacitor_SMD:C_1206_3216Metric")
 two_pin("C43", "3V3", "GND")
-part("Device:R", "R50", "4.7k I2C PULLUP", 340, 216, "Resistor_SMD:R_0805_2012Metric")
+part("Device:R", "R50", "4.7k I2C PULLUP", 340, 196, "Resistor_SMD:R_0805_2012Metric")
 two_pin("R50", "GPIO21_I2C_SDA", "3V3")
-part("Device:R", "R51", "4.7k I2C PULLUP", 340, 226, "Resistor_SMD:R_0805_2012Metric")
+part("Device:R", "R51", "4.7k I2C PULLUP", 340, 208, "Resistor_SMD:R_0805_2012Metric")
 two_pin("R51", "GPIO22_I2C_SCL", "3V3")
-part("Device:R", "R52", "10k OE SAFE PULLUP", 340, 236, "Resistor_SMD:R_0805_2012Metric")
+part("Device:R", "R52", "10k OE SAFE PULLUP", 340, 220, "Resistor_SMD:R_0805_2012Metric")
 two_pin("R52", "GPIO2_SERVO_OE", "3V3")
 
 def add_servo(index, ref, label, x, y):
@@ -304,10 +325,10 @@ def add_servo(index, ref, label, x, y):
     pin_net(ref, 2, "SERVO_6V")
     pin_net(ref, 3, sig)
 
-add_servo(0, "J12", "MAIN_SWING_25KG_SERVO", 270, 276)
-add_servo(1, "J13", "ELBOW_MG996R_SERVO", 310, 276)
-add_servo(2, "J14", "WRIST_MG90S_SERVO", 350, 276)
-s.add_text("Servo pin order: 1 GND, 2 regulated 6V, 3 PWM. Verify cable colors before plugging in.", (248, 291), size=1.05)
+add_servo(0, "J12", "MAIN_SWING_25KG_SERVO", 270, 244)
+add_servo(1, "J13", "ELBOW_MG996R_SERVO", 310, 244)
+add_servo(2, "J14", "WRIST_MG90S_SERVO", 350, 244)
+s.add_text("Servo 1 = main swing; Servo 2 = elbow; Servo 3 = wrist.  Pin order: GND / regulated 6V / PWM.", (248, 260), size=1.05)
 
 # Explicit power flags for ERC and PCB power-net recognition.
 def add_flag(ref, net, x, y):
@@ -339,7 +360,7 @@ for net, x, y, ex, ey, justify, angle in label_records:
         f'\t\t(shape bidirectional)\n'
         f'\t\t(at {x:.4f} {y:.4f} {angle})\n'
         f'\t\t(fields_autoplaced yes)\n'
-        f'\t\t(effects (font (size 0.6 0.6)) (justify {justify}))\n'
+        f'\t\t(effects (font (size 0.6 0.6)) (justify {justify}) (hide yes))\n'
         f'\t\t(uuid "{uuid.uuid4()}")\n'
         f'\t\t(property "Intersheetrefs" "${{INTERSHEET_REFS}}"\n'
         f'\t\t\t(at {x:.4f} {y:.4f} {angle})\n'
