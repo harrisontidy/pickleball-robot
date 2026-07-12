@@ -213,6 +213,10 @@ Power both motor encoders from 3.3 V so level shifting is unnecessary. Buffer al
 
 The encoder wires use pins 3–6 of the matching motor connector: `GND, 3V3, ENCA, ENCB`. Pins 1–2 are the motor wires.
 
+## Servo output connectors
+
+J12–J14 use ordinary unshrouded **2.54 mm male 1x3 headers**, not JST-XH. Standard hobby-servo plugs fit these directly. The board order is `GND / 6V / PWM`; use the silkscreen and check wire colours before connecting power.
+
 ```text
 encoder signal -> 1k series -> FILTER_NODE -> one U4 input
 FILTER_NODE -> 10k -> 3V3
