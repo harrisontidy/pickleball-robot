@@ -13,3 +13,11 @@ pickleball_robot_controller.net
 # Python cache
 __pycache__/
 *.py[cod]
+
+# Vision-model data, weights, and secrets
+*.pt
+*.onnx
+*.engine
+dataset/
+models/
+.env
