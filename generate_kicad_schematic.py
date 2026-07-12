@@ -234,7 +234,7 @@ def add_motor_channel(ref, motor_j, x, y, prefix, pwm, ina, inb, fault, current,
     # CP is only needed for an optional external reverse-battery MOSFET.
     s.no_connects.add(s.get_component_pin_position(ref, "11"))
     part("Connector_Generic:Conn_01x06", motor_j, prefix + "_GA25_370_MOTOR_ENCODER", x + 38, y,
-         "Connector_JST:JST_GH_BM06B-GHS-TBT_1x06-1MP_P1.25mm_Vertical")
+         "Connector_JST:JST_PH_B6B-PH-K_1x06_P2.00mm_Vertical")
     # Expected cable colours: red/white motor; black GND; blue encoder +3V3;
     # yellow A; green B.  Confirm the physical plug pin order before ordering.
     pin_net(motor_j, 1, prefix + "_OUTA"); pin_net(motor_j, 2, prefix + "_OUTB")
@@ -304,7 +304,7 @@ two_pin("C51", "SERVO_6V_RAW", "GND")
 s.add_text("Five amp rail is deliberate: enough for normal 3-servo operation, with the 7.5A fuse limiting the branch.", (248, 78), size=1.0)
 
 s.add_text("WHEEL ENCODERS — BUILT INTO J4/J5 (3.3V)", (248, 16), size=1.8, bold=True)
-s.add_text("J4/J5 are six-pin JST-GH 1.25mm: motor+/motor-/GND/+3V3/encoder-A/encoder-B.", (248, 24), size=1.05)
+s.add_text("J4/J5 are six-pin JST-PH 2.00mm: motor+/motor-/GND/+3V3/encoder-A/encoder-B.", (248, 24), size=1.05)
 # Four separate Schmitt buffers avoid multi-unit-symbol ambiguity.
 encoder_channels = [
     ("U6", 258, 106, "LEFT_ENC_A_RAW", "GPIO34_ENC_LA"),

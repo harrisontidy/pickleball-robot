@@ -148,7 +148,7 @@ Duplicate this entire circuit once for each motor. Use U2 for left and U3 for ri
 | R8–R10 / R15–R17 | 100 kΩ | 0805 | INA, INB, PWM pull-downs |
 | R11/R18 | 10 kΩ | 0805 | diagnostic pull-up |
 | R12/R13 / R19/R20 | 1 kΩ | 0805 | protection between diagnostic pins and shared FAULT net |
-| J4/J5 | JST-GH 6-pin, 1.25 mm pitch | through-hole | one GA25-370 motor + encoder cable each |
+| J4/J5 | JST-PH 6-pin, 2.00 mm pitch | through-hole | one GA25-370 motor + encoder cable each |
 | C_MOTOR | 100 nF, ≥50 V ceramic | solder directly at motor terminals | brush-noise suppression |
 
 ### Power/output connections
