@@ -3,12 +3,12 @@
 ## What is now on the schematic
 
 - 3S LiPo XT60 input, external 15 A blade fuse position, latching E-stop position, TVS clamp, bulk capacitor, and battery-voltage divider.
-- Two protected VNH5019A-E wheel H-bridges with motor terminals, local bulk capacitors, control pull-downs, fault network, and current-sense filtering.
+- Two protected VNH5019A-E wheel H-bridges with one six-pin JST-GH motor/encoder connector each, local bulk capacitors, control pull-downs, fault network, and current-sense filtering.
 - ESP32-PICO-KIT V4.1 removable-carrier footprint using the confirmed 17.78 mm socket-row spacing.
 - Raspberry Pi 3.3 V UART/control header plus a dedicated **TPS54560B 5 V / 5 A** Pi/Hailo buck circuit and a 2x2 Mini-Fit Jr output connector.
 - Separate LM2596S 5 V control rail for the ESP32/logic only.
 - Encoder headers with pull-ups, RC filters, and Schmitt buffers.
-- PCA9685 servo controller, three servo headers, power protection/bulk capacitance, and four clear status LEDs.
+- PCA9685 servo controller, an on-board TPS54560B 6 V / 5 A servo buck, three servo headers, power protection/bulk capacitance, and four clear status LEDs.
 
 ## Design checks completed
 
@@ -19,11 +19,11 @@
 
 ## Still required before ordering a PCB
 
-1. **Measure GA25-370 stall current** at a controlled 12 V supply. The current 5 A-per-wheel assumption is a safe placeholder, not a measurement.
+1. **Measure GA25-370 stall current** at a controlled 12 V supply if you later want to reduce copper/fuse margins. The current prototype assumption is 3 A peak per wheel, not a measurement.
 2. Confirm the exact motor connector, Mini-Fit Jr connector, servo connector, and fuse-holder mechanical footprints against the listings/datasheets you will buy.
 3. Follow the TPS54560B reference-layout rules exactly: tight input capacitor loop, very small switch-node copper, thermal pad with thermal vias, feedback away from the switch node.
 4. Follow ST's VNH5019 exposed-pad/thermal-via recommendation. This part is a reflow/hot-air part, not a normal soldering-iron part.
-5. Select a real regulated **6 V / 10 A minimum** servo supply. Its output connects to J11; it is not yet an on-board buck circuit.
+5. Verify the servo rail at 6 V with a dummy load before connecting a servo. Its on-board converter is rated at 5 A; do not deliberately hold all servos stalled together.
 6. Make the PCB four layers with a solid ground plane and 2 oz outer copper if the fabricator offers it.
 7. Add physical safety hardware: external blade fuse near the battery, latching E-stop/disconnect, battery restraint, and insulated covers for all high-current terminals.
 

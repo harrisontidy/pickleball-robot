@@ -148,7 +148,7 @@ Duplicate this entire circuit once for each motor. Use U2 for left and U3 for ri
 | R8–R10 / R15–R17 | 100 kΩ | 0805 | INA, INB, PWM pull-downs |
 | R11/R18 | 10 kΩ | 0805 | diagnostic pull-up |
 | R12/R13 / R19/R20 | 1 kΩ | 0805 | protection between diagnostic pins and shared FAULT net |
-| J4/J5 | 2-pin 5.08 mm terminal, ≥10 A rated | through-hole | motor connection |
+| J4/J5 | JST-GH 6-pin, 1.25 mm pitch | through-hole | one GA25-370 motor + encoder cable each |
 | C_MOTOR | 100 nF, ≥50 V ceramic | solder directly at motor terminals | brush-noise suppression |
 
 ### Power/output connections
@@ -211,7 +211,7 @@ Power both motor encoders from 3.3 V so level shifting is unnecessary. Buffer al
 
 ### Connections
 
-Each connector is `3V3, GND, ENCA, ENCB`.
+The encoder wires use pins 3–6 of the matching motor connector: `GND, 3V3, ENCA, ENCB`. Pins 1–2 are the motor wires.
 
 ```text
 encoder signal -> 1k series -> FILTER_NODE -> one U4 input

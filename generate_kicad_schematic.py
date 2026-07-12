@@ -12,7 +12,7 @@ s.set_title_block(
     date="2026-07-12",
     rev="R1-DRAFT",
     company="Harrison",
-    comments={1: "3S LiPo; 2x GA25-370; provisional 5 A stall per motor",
+    comments={1: "3S LiPo; 2x GA25-370; prototype assumption: 3 A peak per motor",
               2: "DRAFT: verify motor stall current and footprints before manufacture",
               3: "Pi power uses dedicated TPS54560B 5 V / 5 A buck"},
 )
@@ -221,7 +221,7 @@ s.add_text("D5 GREEN: control 5V     D6 BLUE: Pi 5V     D7 AMBER: servo 6V     D
 # ---------------------------------------------------------------------------
 # Two integrated high-current H bridges.
 # ---------------------------------------------------------------------------
-def add_motor_channel(ref, motor_j, x, y, prefix, pwm, ina, inb, fault, current):
+def add_motor_channel(ref, motor_j, x, y, prefix, pwm, ina, inb, fault, current, enc_a, enc_b):
     part("Driver_Motor:VNH5019A-E", ref, "VNH5019A-E", x, y,
          "Package_SO:ST_MultiPowerSO-30")
     pin_net(ref, 3, "VBAT_SW"); pin_net(ref, 12, "VBAT_SW")
@@ -233,9 +233,13 @@ def add_motor_channel(ref, motor_j, x, y, prefix, pwm, ina, inb, fault, current)
     pin_net(ref, 1, prefix + "_OUTA"); pin_net(ref, 15, prefix + "_OUTB")
     # CP is only needed for an optional external reverse-battery MOSFET.
     s.no_connects.add(s.get_component_pin_position(ref, "11"))
-    part("Connector_Generic:Conn_01x02", motor_j, prefix + "_MOTOR", x + 38, y,
-         "TerminalBlock:TerminalBlock_MaiXu_MX126-5.0-02P_1x02_P5.00mm")
+    part("Connector_Generic:Conn_01x06", motor_j, prefix + "_GA25_370_MOTOR_ENCODER", x + 38, y,
+         "Connector_JST:JST_GH_BM06B-GHS-TBT_1x06-1MP_P1.25mm_Vertical")
+    # Expected cable colours: red/white motor; black GND; blue encoder +3V3;
+    # yellow A; green B.  Confirm the physical plug pin order before ordering.
     pin_net(motor_j, 1, prefix + "_OUTA"); pin_net(motor_j, 2, prefix + "_OUTB")
+    pin_net(motor_j, 3, "GND"); pin_net(motor_j, 4, "3V3")
+    pin_net(motor_j, 5, enc_a); pin_net(motor_j, 6, enc_b)
     part("Device:C_Polarized", "C" + ("12" if prefix == "LEFT" else "15"), "470uF 25V LOW_ESR", x + 38, y + 18,
          "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm")
     two_pin("C" + ("12" if prefix == "LEFT" else "15"), "VBAT_SW", "GND")
@@ -255,23 +259,52 @@ def add_motor_channel(ref, motor_j, x, y, prefix, pwm, ina, inb, fault, current)
     two_pin(f"C{base}", current, "GND")
 
 s.add_text("LEFT MOTOR DRIVER", (20, 198), size=1.8, bold=True)
-add_motor_channel("U2", "J4", 58, 225, "LEFT", "GPIO25_L_PWM", "GPIO26_L_INA", "GPIO27_L_INB", "MOTOR_DIAG", "SENSOR_VP_GPIO36")
+add_motor_channel("U2", "J4", 58, 225, "LEFT", "GPIO25_L_PWM", "GPIO26_L_INA", "GPIO27_L_INB", "MOTOR_DIAG", "SENSOR_VP_GPIO36", "LEFT_ENC_A_RAW", "LEFT_ENC_B_RAW")
 s.add_text("RIGHT MOTOR DRIVER", (135, 198), size=1.8, bold=True)
-add_motor_channel("U3", "J5", 170, 225, "RIGHT", "GPIO14_R_PWM", "GPIO13_R_INA", "GPIO4_R_INB", "MOTOR_DIAG", "SENSOR_VN_GPIO39")
+add_motor_channel("U3", "J5", 170, 225, "RIGHT", "GPIO14_R_PWM", "GPIO13_R_INA", "GPIO4_R_INB", "MOTOR_DIAG", "SENSOR_VN_GPIO39", "RIGHT_ENC_A_RAW", "RIGHT_ENC_B_RAW")
 
 # ---------------------------------------------------------------------------
 # Encoder connectors and input conditioning placeholder connectors.
 # Full RC/Schmitt detail is documented in SCHEMATIC_GUIDE.md and is represented
 # here by the buffer plus named nets for clean first-pass review.
 # ---------------------------------------------------------------------------
-s.add_text("WHEEL ENCODERS (3.3V)", (248, 16), size=1.8, bold=True)
-part("Connector_Generic:Conn_01x04", "J6", "LEFT_ENCODER", 254, 85,
-     "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical")
-part("Connector_Generic:Conn_01x04", "J7", "RIGHT_ENCODER", 300, 85,
-     "Connector_JST:JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical")
-for ref, nets in [("J6", ["3V3", "GND", "LEFT_ENC_A_RAW", "LEFT_ENC_B_RAW"]),
-                  ("J7", ["3V3", "GND", "RIGHT_ENC_A_RAW", "RIGHT_ENC_B_RAW"])]:
-    for i, net in enumerate(nets, 1): pin_net(ref, i, net)
+s.add_text("SERVO 6V / 5A BUCK — TPS54560B", (248, 42), size=1.55, bold=True)
+part("Regulator_Switching:TPS54560BDDA", "U10", "TPS54560BDDA — 6V / 5A", 278, 57,
+     "Package_SO:TI_SO-PowerPAD-8_ThermalVias")
+pin_net("U10", 1, "SERVO_BOOT"); pin_net("U10", 2, "VBAT_SW")
+pin_net("U10", 3, "VBAT_SW"); pin_net("U10", 4, "SERVO_RT")
+pin_net("U10", 5, "SERVO_FB"); pin_net("U10", 6, "SERVO_COMP")
+pin_net("U10", 7, "GND"); pin_net("U10", 8, "SERVO_BUCK_SW"); pin_net("U10", 9, "GND")
+part("Device:C", "C45", "100nF BOOT", 300, 48, "Capacitor_SMD:C_0805_2012Metric")
+two_pin("C45", "SERVO_BOOT", "SERVO_BUCK_SW")
+part("Device:D_Schottky", "D10", "B560C 5A", 300, 57, "Diode_SMD:D_SMC")
+two_pin("D10", "GND", "SERVO_BUCK_SW")
+part("Device:L", "L3", "6.8uH >=8A SHIELDED", 313, 57, "Inductor_SMD:L_1210_3225Metric")
+two_pin("L3", "SERVO_BUCK_SW", "SERVO_6V_RAW")
+part("Device:C", "C46", "2.2uF 25V X7R", 248, 55, "Capacitor_SMD:C_1206_3216Metric")
+two_pin("C46", "VBAT_SW", "GND")
+part("Device:C", "C47", "2.2uF 25V X7R", 258, 55, "Capacitor_SMD:C_1206_3216Metric")
+two_pin("C47", "VBAT_SW", "GND")
+part("Device:R", "R104", "243k RT SET", 260, 70, "Resistor_SMD:R_0805_2012Metric")
+two_pin("R104", "SERVO_RT", "GND")
+part("Device:R", "R105", "590k FB TOP 1%", 328, 48, "Resistor_SMD:R_0805_2012Metric")
+two_pin("R105", "SERVO_6V_RAW", "SERVO_FB")
+part("Device:R", "R106", "90.9k FB BOTTOM 1%", 340, 48, "Resistor_SMD:R_0805_2012Metric")
+two_pin("R106", "SERVO_FB", "GND")
+part("Device:R", "R107", "10.2k COMP", 328, 70, "Resistor_SMD:R_0805_2012Metric")
+two_pin("R107", "SERVO_COMP", "SERVO_COMP_RC")
+part("Device:C", "C48", "4.7nF COMP", 340, 70, "Capacitor_SMD:C_0805_2012Metric")
+two_pin("C48", "SERVO_COMP_RC", "GND")
+part("Device:C", "C49", "47pF COMP", 352, 70, "Capacitor_SMD:C_0805_2012Metric")
+two_pin("C49", "SERVO_COMP", "GND")
+part("Device:C", "C50", "47uF 10V X7R", 364, 48, "Capacitor_SMD:C_1210_3225Metric")
+two_pin("C50", "SERVO_6V_RAW", "GND")
+part("Device:C", "C51", "47uF 10V X7R", 374, 48, "Capacitor_SMD:C_1210_3225Metric")
+two_pin("C51", "SERVO_6V_RAW", "GND")
+s.add_text("Five amp rail is deliberate: enough for normal 3-servo operation, with the 7.5A fuse limiting the branch.", (248, 78), size=1.0)
+
+s.add_text("WHEEL ENCODERS — BUILT INTO J4/J5 (3.3V)", (248, 16), size=1.8, bold=True)
+s.add_text("J4/J5 are six-pin JST-GH 1.25mm: motor+/motor-/GND/+3V3/encoder-A/encoder-B.", (248, 24), size=1.05)
 # Four separate Schmitt buffers avoid multi-unit-symbol ambiguity.
 encoder_channels = [
     ("U6", 258, 106, "LEFT_ENC_A_RAW", "GPIO34_ENC_LA"),
@@ -309,10 +342,10 @@ s.add_text("5. External fuse and latching E-stop are mandatory.", (248, 164), si
 # The PCB controls PWM; a separate regulated 6 V / 10 A source supplies power.
 # ---------------------------------------------------------------------------
 s.add_text("3-DOF ARM SERVO CONTROL", (248, 168), size=1.8, bold=True)
-part("Connector_Generic:Conn_01x02", "J11", "SERVO_6V_10A_INPUT", 260, 182,
+part("Connector_Generic:Conn_01x02", "J11", "SERVO_6V_POWER_OUT", 260, 182,
      "TerminalBlock:TerminalBlock_MaiXu_MX126-5.0-02P_1x02_P5.00mm")
-pin_net("J11", 1, "SERVO_6V_RAW"); pin_net("J11", 2, "GND")
-part("Device:Fuse", "F2", "15A_EXTERNAL_SERVO_FUSE", 285, 176,
+pin_net("J11", 1, "SERVO_6V"); pin_net("J11", 2, "GND")
+part("Device:Fuse", "F2", "7.5A_SERVO_OUTPUT_FUSE", 285, 176,
      "Fuse:Fuse_Blade_ATO_directSolder")
 two_pin("F2", "SERVO_6V_RAW", "SERVO_6V")
 part("Device:D_TVS", "D4", "SMBJ8.0A", 304, 176, "Diode_SMD:D_SMB")

@@ -11,14 +11,14 @@ Use one 3S LiPo battery. Do not add a second battery for the Raspberry Pi.
   |
   +-- 5 V / 1 A buck regulator --> ESP32 + encoder logic + PCA9685 logic
   |
-  +-- 6 V / 10 A regulator --> three arm servos
+  +-- 6 V / 5 A regulator --> three arm servos
 ```
 
 The Pi must use its own 5 V / 5 A regulator because the board's small LM2596S logic converter is only for the ESP32, encoders, LEDs, and PCA9685. A Pi 5 plus Hailo can need substantially more current than that small rail can safely supply.
 
 This revision includes that regulator on the PCB: **U4, TPS54560BDDA**, a 4.5–60 V, 5 A buck controller with its external diode, inductor, feedback, compensation, input capacitors, output capacitors, output fuse, and Mini-Fit Jr Pi connector. The 12 V nominal → 5 V / 5 A component values follow TI's documented reference circuit. The Pi rail is `PI_5V`; it is protected by F3 and must only feed the Pi/Hailo branch.
 
-The current servo power connector remains an input for a separately regulated 6 V / 10 A supply. That is deliberate: a safe custom 10 A servo regulator needs a substantially more demanding high-current PCB/thermal design than the Pi converter. Do not put 3S battery voltage directly into J11 or into any servo.
+The PCB now includes a second TPS54560B buck circuit for the servo branch: **6 V / 5 A**, followed by a 7.5 A fuse, transient clamp, bulk capacitor, and three servo headers. This is a sensible hobby-prototype rating for the 25 kg main servo, MG996R elbow servo, and MG90S wrist servo when they are not deliberately stalled together. Do not put 3S battery voltage directly into any servo.
 
 The arm servo rail also needs its own **regulated** 6 V, high-current supply. Do not attach the 3S LiPo directly to the servo connectors.
 
