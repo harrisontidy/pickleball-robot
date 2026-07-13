@@ -4,13 +4,14 @@ This guide describes revision **R2-MULTISHEET**. The source of truth is `generat
 
 ## Sheet map
 
-1. `01_power_and_pi.kicad_sch` — 3S battery input, main protection, real E-stop loop, battery ADC, 5 V logic supply, and 5.1 V Raspberry Pi supply.
-2. `02_esp32_and_pi.kicad_sch` — ESP32-PICO-KIT V4.1 carrier, Pi UART/control header, fault aggregation, optional I2C links, status LEDs, and debug points.
-3. `03_left_motor.kicad_sch` — left VNH5019 driver, branch fuse, current-sense protection, motor/encoder connector, and large motor-wire pads.
-4. `04_right_motor.kicad_sch` — right channel, matching sheet 3.
-5. `05_encoder_inputs.kicad_sch` — filtered encoder 3.3 V rail, cable resistors, four Schmitt buffers, local bypass capacitors, and test points.
-6. `06_arm_servos.kicad_sch` — 6 V servo buck, PCA9685, and three independent PWM outputs.
-7. `07_main_servo_8v4.kicad_sch` — dedicated 8.4 V rail for the Miuzei main-swing servo.
+1. `00_battery_safety.kicad_sch` — XT60, main fuse, LTC4365 whole-board cutoff, E-stop relay wiring, actuator TVS, and battery ADC.
+2. `01_power_and_pi.kicad_sch` — 5 V logic supply and 5.1 V Raspberry Pi supply.
+3. `02_esp32_and_pi.kicad_sch` — ESP32-PICO-KIT V4.1 carrier, Pi UART/control header, fault aggregation, optional I2C links, status LEDs, and debug points.
+4. `03_left_motor.kicad_sch` — left VNH5019 driver, branch fuse, current-sense protection, motor/encoder connector, and large motor-wire pads.
+5. `04_right_motor.kicad_sch` — right channel, matching the left channel.
+6. `05_encoder_inputs.kicad_sch` — filtered encoder 3.3 V rail, cable resistors, four Schmitt buffers, local bypass capacitors, and test points.
+7. `06_arm_servos.kicad_sch` — 6 V servo buck, PCA9685, three AHCT level buffers, and three independent PWM outputs.
+8. `07_main_servo_8v4.kicad_sch` — dedicated 8.4 V rail for the Miuzei main-swing servo.
 
 J1 uses the KiCad AMASS XT60PW-M footprint's actual polarity: pin 1 is negative/GND and pin 2 is positive/BAT_RAW. Do not reverse these to match a generic two-pin connector convention.
 
@@ -77,23 +78,29 @@ U5 is a PCA9685. LED0, LED1, and LED2 generate independent commands; all three s
 |---|---|---:|---|
 | J12 | Miuzei 25KG 270° main swing | 8.4 V | 1 GND, 2 power, 3 PWM |
 | J13 | MG996R elbow | 6 V | 1 GND, 2 power, 3 PWM |
-| J14 | MG90S wrist | 6 V | 1 GND, 2 power, 3 PWM |
+| J14 | MG90S wrist | 4.85 V | 1 GND, 2 power, 3 PWM |
 
 These hobby servos contain an internal control loop and position sensor, but they do not return their measured position to the ESP32 through the normal three-wire connector.
 
 `SERVO_POWER_ENABLE` defaults low and controls both servo-regulator EN pins. PCA9685 OE also defaults disabled. This gives two startup safeguards: no servo power until the Pi enables it, and no PWM until the ESP32 enables outputs.
 
+U13–U15 are SN74AHCT1G125 buffers powered from `WRIST_4V85`. AHCT inputs accept the PCA9685's 3.3 V high level and produce 4.85 V PWM at every servo header. Their active-low OE pins share `GPIO32_SERVO_OE`, so they are high-impedance whenever the PCA outputs are disabled; removing servo power also removes buffer power.
+
 ## Power rails
 
-- `VBAT_SW`: fused 3S battery supply for Pi and logic.
+- `BAT_FUSED`: battery voltage immediately after F1.
+- `VBAT_SW`: whole-board protected supply after U12/Q5/Q6.
 - `ACT_VBAT`: battery supply after the external latching E-stop loop, used by motors and both servo regulators.
 - `+5V_CTRL`: ESP32 and logic only.
 - `PI_5V`: approximately 5.1 V, up to 5 A design target.
-- `SERVO_6V`: 6.0 V rail for J13/J14.
+- `SERVO_6V`: 6.0 V rail for J13 and input to the wrist LDO.
+- `WRIST_4V85`: dedicated fused 4.85 V rail for J14 MG90S.
 - `MAIN_SERVO_8V4`: 8.4 V rail for J12.
 - `ENC_3V3`: ferrite-filtered encoder supply.
 
-The TPS54560 networks use corrected feedback, EN, catch-diode, and compensation connections. C30/C40/C61 and the three RC snubbers are real KiCad DNP parts; do not populate optional bulk/snubber parts until loop and switch-node measurements justify them.
+U12 disconnects below approximately 9.62 V, reconnects near 10.10 V, and trips overvoltage near 13.79 V. It is a whole-pack discharge cutoff, not a balance charger or per-cell BMS. The TPS54560 networks use corrected feedback, EN, catch-diode, and compensation connections. C30/C40/C61 and the three RC snubbers are real KiCad DNP parts; do not populate optional bulk/snubber parts until loop and switch-node measurements justify them.
+
+For the E-stop, use J21.1 -> Schneider XB5AS8442 NC button -> Panasonic CB1aF-RM-12V-A-5 relay coil -> J21.2. Connect the relay NO contact across J18. This keeps high actuator current out of the push-button and makes a broken coil wire stop the actuators.
 
 ## PCB rules that are not optional
 
@@ -112,6 +119,6 @@ The TPS54560 networks use corrected feedback, EN, catch-diode, and compensation 
 1. Measure actual motor stall current or keep the conservative 5 A branch-fuse/copper allowance.
 2. Confirm every physical connector and servo SKU against the purchased part.
 3. Choose exact output MLCCs and verify their effective capacitance at 5.1 V, 6 V, and 8.4 V.
-4. Add or purchase a genuine 3S low-voltage protection solution. The battery ADC and Pi-controlled enable are not a hardware LiPo cutoff.
+4. Bench-test U12 cutoff, reconnect, reverse isolation, Q5/Q6 temperature, and the complete E-stop relay harness.
 5. Bench-test regulator startup and transient response on the first PCB with a current-limited supply and dummy loads.
 6. Firmware must use calibrated current sense and a short overcurrent timeout. The 5 A motor fuses protect wiring, not the small motors.

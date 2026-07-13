@@ -3,15 +3,18 @@
 ## What now passes
 
 - KiCad ERC: zero errors and zero warnings.
-- `audit_design.py`: passes diode polarity, XT60 polarity, regulator-divider, UVLO, DNP and off-board-part checks that ERC cannot understand.
-- Seven readable hierarchical sheets plus a root overview; PDF exports directly from KiCad.
+- `audit_design.py`: passes diode polarity, XT60 polarity, regulator dividers, whole-board LVD thresholds/topology, servo-buffer count, DNP and off-board-part checks that ERC cannot understand.
+- Eight readable hierarchical sheets plus a root overview; battery safety has its own page.
 - Correct photographed ESP32 carrier row spacing and corrected antenna/USB orientation.
 - Correct right-motor GPIO13 physical pad; Pi UART moved off USB-UART GPIO1/3; servo OE moved off boot GPIO2.
 - Left/right driver diagnostics are Schottky-aggregated to ESP GPIO23, J10 and the fault LED without using a strap pin.
 - Motor current ADCs and battery ADC have series/filter/clamp protection.
 - Four encoder inputs have cable resistors, Schmitt buffers, individual bypass capacitors, and filtered encoder power.
 - Motor connector order and separate large motor-wire pads match the user's photographed harness description.
-- Three independently commanded servo outputs; main servo at 8.4 V, other two at 6 V.
+- Three independently commanded servo outputs: Miuzei at 8.4 V, MG996R at 6 V, and official MG90S at 4.85 V.
+- Three AHCT buffers translate every servo command to guaranteed 4.85 V PWM, go high-impedance with PCA9685 OE, and lose power when the servo rails are disabled.
+- LTC4365 plus back-to-back TO-220 MOSFETs disconnects the whole board at about 9.62 V and reconnects at about 10.10 V.
+- Exact fail-safe E-stop wiring is selected: XB5AS8442 NC button controlling a resistor-suppressed Panasonic 40 A automotive relay.
 - Corrected TPS54560 feedback and compensation networks, reference-style ceramic output banks, reduced startup bulk, and exact through-hole fuse-holder footprints.
 - Real external E-stop series connector, local actuator-regeneration TVS, actuator/logic power separation, Pi-controlled default-off servo enable, status LEDs, and 51 compact bare-copper test pads excluded from assembly BOM.
 - Every catch diode, ADC clamp and LED has been polarity-checked; TVSs are explicitly bidirectional `CA` parts.
@@ -20,13 +23,12 @@
 
 ## Remaining gates — do not send Gerbers until these are closed
 
-1. **Battery protection:** add/choose a genuine hardware 3S undervoltage cutoff. Firmware voltage sensing is not sufficient protection against a crashed controller.
+1. **Battery qualification:** bench-sweep U12 cutoff/reconnect and remember it is whole-pack protection, not cell balancing or charging protection.
 2. **Regulator validation:** confirm the selected Murata/Samsung MLCC DC-bias curves, then verify U4/U10/U11 stability, startup, load steps, ripple, and temperature on the first prototype. Leave optional bulk and snubbers DNP initially.
-3. **Mechanical confirmation:** print the PCB 1:1 and place the real ESP32, J4/J5 harness, Mini-Fit Jr, terminal blocks, fuse holders, capacitors, and servo plugs on it.
+3. **Mechanical confirmation:** print the PCB 1:1 and place the real ESP32, J4/J5 harness, Mini-Fit Jr, terminal blocks, fuse holders, capacitors, TO-220 MOSFETs, and servo plugs on it.
 4. **Motor current:** a 5 A branch allowance is conservative, not a claim that the motor normally draws 5 A. Measure the actual stall/current-limited behavior before reducing fuse, connector, wire, or copper margin.
-5. **Servo identity:** confirm the exact Miuzei SKU allows continuous 8.4 V and verify MG996R/MG90S lead polarity.
-6. **Logic level:** bench-confirm all three servo models recognize 3.3 V PWM; add a 5 V AHCT buffer if any model does not.
-7. **E-stop hardware:** select an exact NC latching E-stop/contact path with a suitable 12 V DC motor-load interruption and inrush rating.
+5. **Servo identity:** confirm the exact purchased Miuzei SKU allows continuous 8.4 V and verify all servo lead polarities. PWM voltage uncertainty is removed by U13–U15.
+6. **E-stop harness:** continuity-test the NC-button/relay-coil fail-safe behavior and verify J18 opens when the button is pressed or any coil-loop wire is removed.
 
 ## PCB-layout checklist
 

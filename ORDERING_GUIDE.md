@@ -11,6 +11,9 @@ The generated `pickleball_robot_controller-bom.csv` is the complete reference/va
 | U4, U10, U11 | TI TPS54560BDDA | 5 A asynchronous buck, DDA PowerPAD-8 |
 | U5 | NXP PCA9685PW,118 | 16-channel PWM controller, TSSOP-28 |
 | U6–U9 | TI SN74LVC1G14DBVR | single Schmitt inverter, SOT-23-5 |
+| U12 | Analog Devices LTC4365ITS8#TRPBF | whole-board UV/OV and reverse-supply controller, TSOT-23-8 |
+| U13–U15 | TI SN74AHCT1G125DBVR | guaranteed 3.3 V-to-4.85 V servo PWM buffers, SOT-23-5 |
+| U16 | Analog Devices LT1963AEQ#PBF | 1.5 A adjustable LDO, TO-263-5; 4.85 V MG90S rail |
 
 ## High-current power parts
 
@@ -23,11 +26,14 @@ The generated `pickleball_robot_controller-bom.csv` is the complete reference/va
 | C5/C7 | Panasonic EEU-FR1E221 / EEU-FR1A331; LM2596-qualified input/output electrolytics |
 | F2–F6 holder | Keystone 3568 mini-blade PCB holder |
 | F7/F8 | Bourns MF-PSMF010X-2, 100 mA hold resettable fuse, 0805 |
+| F9 | Bourns MF-MSMF150/16X, 1.5 A hold resettable fuse, 1812 |
 | F2–F6 fuse | start with 5 A automotive mini blade; revise only after measured current/thermal testing |
 | F1 | 15 A ATO blade at the battery input |
+| Q5/Q6 | Infineon IRLB4030PBF, 100 V logic-level N-MOSFET, TO-220; provide thermal copper and clearance |
 | D1, D21 | SMBJ15CA bidirectional TVS |
 | J1 | AMASS XT60PW-M board-mount male connector |
-| J18 | Phoenix Contact MKDS 3/2-5.08 (24 A, up to 12 AWG) plus a separately verified DC-rated latching E-stop |
+| J18 | Phoenix Contact MKDS 3/2-5.08 (24 A, up to 12 AWG), external relay-contact loop |
+| J21 | Phoenix Contact MKDS-1,5/2-5.08, low-current E-stop relay-coil supply |
 | J9 | Molex 39-30-1040 right-angle 2x2 Mini-Fit Jr header; use its exact drawing before PCB order |
 | J4/J5 | JST B6B-PH-K-S(LF)(SN), 2.00 mm six-pin vertical header |
 
@@ -41,14 +47,15 @@ All ordinary resistors and small capacitors are 0805. Exceptions are intentional
 - J10/J12/J13/J14/J20: ordinary 2.54 mm female housings or Dupont leads, but use locking housings in the moving robot where possible.
 - J4/J5: JST PHR-6 housing with SPH-002T-P0.5S contacts, subject to confirmation against the motor's actual plug.
 - J11/J17: 5.00 mm terminal blocks matching the assigned footprint.
+- E-stop: Schneider XB5AS8442 1NC positive-opening turn-release button plus Panasonic CB1aF-RM-12V-A-5 12 V relay with internal resistor suppression; wire its NO contact across J18.
 
 ## Do not order yet without checking
 
 - Exact electrolytic series, diameter, height, ESR, ripple current, and lead spacing.
 - U11 output MLCC DC-bias curve and availability for Samsung `CL32B226KLV6PN#`.
-- Servo model voltage limits and connector polarity.
+- Servo connector polarity and exact purchased SKU.
 - Motor JST family by direct measurement/continuity test.
 - Fuse nuisance-blow behavior after real motor/servo testing.
-- Battery low-voltage cutoff hardware.
+- Q5/Q6 thermal performance at worst-case continuous board current.
 
 Buy at least two spare U2/U3 and U4/U10/U11 parts for prototype rework. The exposed-pad packages require paste plus hot air/hot plate/reflow; an iron alone cannot reliably solder the center pads.

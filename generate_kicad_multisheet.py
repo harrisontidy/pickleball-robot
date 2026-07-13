@@ -6,7 +6,7 @@ import uuid
 from kicad_sch_api import create_schematic
 
 ROOT = Path(__file__).resolve().parent
-TOTAL_SHEETS = 7
+TOTAL_SHEETS = 8
 
 class Sheet:
     def __init__(self, filename, title, number):
@@ -123,27 +123,54 @@ def testpoint(sh, ref, net, x, y, label=None):
     sh.net(ref, 1, net, 5.08)
     sh.mark_no_bom(ref)
 
-# ------------------------------------------------------------------ Sheet 1
-p=Sheet("01_power_and_pi.kicad_sch","Battery Protection, Logic Buck, and Raspberry Pi Power",1)
-p.text("BATTERY INPUT AND PROTECTION",65,18,2.2,True)
-p.part("Connector_Generic:Conn_01x02","J1","AMASS XT60PW-M BATTERY INPUT",35,38,"Connector_AMASS:AMASS_XT60PW-M_1x02_P7.20mm_Horizontal")
-p.net("J1",1,"GND"); p.net("J1",2,"BAT_RAW")
-p.part("Device:Fuse","F1","15 A ATO BLADE",68,33,"Fuse:Fuse_Blade_ATO_directSolder"); p.two("F1","BAT_RAW","VBAT_SW")
-p.part("Device:D_TVS","D1","SMBJ15CA",100,38,"Diode_SMD:D_SMB"); p.two("D1","VBAT_SW","GND")
-p.part("Device:C_Polarized","C1","1000 uF 35 V",128,38,"Capacitor_THT:CP_Radial_D12.5mm_P5.00mm"); p.two("C1","VBAT_SW","GND")
-p.part("Device:C","C2","1 uF 25 V",152,38,"Capacitor_SMD:C_0805_2012Metric"); p.two("C2","VBAT_SW","GND")
-p.part("Connector_Generic:Conn_01x02","J18","EXTERNAL DC-RATED LATCHING E-STOP",185,38,"TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-3-2-5.08_1x02_P5.08mm_Horizontal")
-p.net("J18",1,"VBAT_SW"); p.net("J18",2,"ACT_VBAT")
-p.part("Device:D_TVS","D21","SMBJ15CA ACT TVS",205,48,"Diode_SMD:D_SMB"); p.two("D21","ACT_VBAT","GND")
-p.text("J18 must be closed by a latching E-stop switch. It removes actuator power but keeps Pi/ESP logic alive.",125,58,1.25)
+# ---------------------------------------------------------- Sheet 1: safety
+b=Sheet("00_battery_safety.kicad_sch","Battery Fuse, Whole-System Cutoff, and E-Stop",1)
+b.text("3S BATTERY INPUT, FUSE, AND WHOLE-SYSTEM UV/OV DISCONNECT",120,18,2.2,True)
+b.part("Connector_Generic:Conn_01x02","J1","AMASS XT60PW-M BATTERY INPUT",25,48,"Connector_AMASS:AMASS_XT60PW-M_1x02_P7.20mm_Horizontal")
+b.net("J1",1,"GND"); b.net("J1",2,"BAT_RAW")
+b.part("Device:Fuse","F1","15 A ATO BLADE",58,43,"Fuse:Fuse_Blade_ATO_directSolder"); b.two("F1","BAT_RAW","BAT_FUSED")
+b.part("Transistor_FET:Q_NMOS_GDS","Q5","IRLB4030PBF 100 V 4.5 mR",95,48,"Package_TO_SOT_THT:TO-220-3_Vertical")
+b.net("Q5",1,"LVD_GATE_Q5"); b.net("Q5",2,"BAT_FUSED"); b.net("Q5",3,"LVD_COMMON_SOURCE")
+b.part("Transistor_FET:Q_NMOS_GDS","Q6","IRLB4030PBF 100 V 4.5 mR",135,48,"Package_TO_SOT_THT:TO-220-3_Vertical")
+b.net("Q6",1,"LVD_GATE_Q6"); b.net("Q6",2,"VBAT_SW"); b.net("Q6",3,"LVD_COMMON_SOURCE")
+b.part("Power_Management:LTC4365TS8","U12","LTC4365ITS8#TRPBF WHOLE-BOARD LVD",200,52,"Package_TO_SOT_SMD:TSOT-23-8_HandSoldering")
+for pin,net in [(1,"BAT_FUSED"),(2,"LVD_UV"),(3,"LVD_OV"),(4,"GND"),(5,"LVD_SHDN"),(6,"LVD_FAULT"),(7,"VBAT_SW"),(8,"LVD_GATE_DRV")]: b.net("U12",pin,net)
+b.part("Device:R","R115","5.49 M 1% UV TOP",260,30,"Resistor_SMD:R_0805_2012Metric"); b.two("R115","BAT_FUSED","LVD_UV")
+b.part("Device:R","R116","90.9 k 1% UV-OV",260,52,"Resistor_SMD:R_0805_2012Metric"); b.two("R116","LVD_UV","LVD_OV")
+b.part("Device:R","R117","210 k 1% OV BOTTOM",260,74,"Resistor_SMD:R_0805_2012Metric"); b.two("R117","LVD_OV","GND")
+b.part("Device:R","R118","100 k SHDN LIMIT",310,30,"Resistor_SMD:R_0805_2012Metric"); b.two("R118","BAT_FUSED","LVD_SHDN")
+b.part("Device:R","R121","10 R GATE STOP",165,30,"Resistor_SMD:R_0805_2012Metric"); b.two("R121","LVD_GATE_DRV","LVD_GATE_Q5")
+b.part("Device:R","R122","10 R GATE STOP",165,74,"Resistor_SMD:R_0805_2012Metric"); b.two("R122","LVD_GATE_DRV","LVD_GATE_Q6")
+b.part("Device:R","R119","3.9 k LVD FAULT LED",310,52,"Resistor_SMD:R_0805_2012Metric"); b.two("R119","BAT_FUSED","LVD_LED_A")
+b.part("Device:LED","D22","RED BATTERY CUTOFF",350,52,"LED_SMD:LED_0805_2012Metric"); b.two("D22","LVD_FAULT","LVD_LED_A")
+b.part("Device:D_TVS","D1","SMBJ15CA",380,42,"Diode_SMD:D_SMB"); b.two("D1","VBAT_SW","GND")
+b.part("Device:C_Polarized","C1","1000 uF 35 V",405,42,"Capacitor_THT:CP_Radial_D12.5mm_P5.00mm"); b.two("C1","VBAT_SW","GND")
+b.part("Device:C","C2","1 uF 25 V",405,72,"Capacitor_SMD:C_0805_2012Metric"); b.two("C2","VBAT_SW","GND")
+b.text("LTC4365: about 9.6 V cutoff, 10.1 V reconnect, 13.8 V OV. This is a discharge cutoff, not a balance charger.",150,95,1.25)
 
-p.text("BATTERY VOLTAGE MONITOR",65,78,1.8,True)
-p.part("Device:R","R1","100 k 1%",45,98,"Resistor_SMD:R_0805_2012Metric"); p.two("R1","VBAT_SW","BAT_SENSE_RAW")
-p.part("Device:R","R2","27 k 1%",80,98,"Resistor_SMD:R_0805_2012Metric"); p.two("R2","BAT_SENSE_RAW","GND")
-p.part("Device:R","R3","1 k",115,98,"Resistor_SMD:R_0805_2012Metric"); p.two("R3","BAT_SENSE_RAW","GPIO33_BAT_ADC")
-p.part("Device:C","C4","100 nF",150,98,"Capacitor_SMD:C_0805_2012Metric"); p.two("C4","GPIO33_BAT_ADC","GND")
-p.part("Device:D_Schottky","D2","BAT54 LOW CLAMP",175,88,"Diode_SMD:D_SOD-323"); p.two("D2","GPIO33_BAT_ADC","GND")
-p.part("Device:D_Schottky","D14","BAT54 HIGH CLAMP",175,108,"Diode_SMD:D_SOD-323"); p.two("D14","3V3","GPIO33_BAT_ADC")
+b.text("ACTUATOR E-STOP LOOP",70,120,1.8,True)
+b.part("Connector_Generic:Conn_01x02","J18","EXTERNAL NC LATCHING E-STOP LOOP",65,145,"TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-3-2-5.08_1x02_P5.08mm_Horizontal")
+b.net("J18",1,"VBAT_SW"); b.net("J18",2,"ACT_VBAT")
+b.part("Device:D_TVS","D21","SMBJ15CA ACT TVS",110,145,"Diode_SMD:D_SMB"); b.two("D21","ACT_VBAT","GND")
+b.part("Connector_Generic:Conn_01x02","J21","E-STOP RELAY COIL SUPPLY",155,155,"TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal")
+b.net("J21",1,"VBAT_SW"); b.net("J21",2,"GND")
+b.text("J21.1 -> XB5AS8442 NC button -> Panasonic CB1aF-RM-12V-A-5 coil -> J21.2. Relay NO contacts connect J18.1 to J18.2.",250,145,1.15)
+b.text("The selected relay has internal coil suppression and a 40 A/14 VDC NO contact; pressing E-stop de-energizes it.",250,158,1.15)
+
+b.text("BATTERY VOLTAGE MONITOR",70,180,1.8,True)
+b.part("Device:R","R1","100 k 1%",45,205,"Resistor_SMD:R_0805_2012Metric"); b.two("R1","VBAT_SW","BAT_SENSE_RAW")
+b.part("Device:R","R2","27 k 1%",85,205,"Resistor_SMD:R_0805_2012Metric"); b.two("R2","BAT_SENSE_RAW","GND")
+b.part("Device:R","R3","1 k",125,205,"Resistor_SMD:R_0805_2012Metric"); b.two("R3","BAT_SENSE_RAW","GPIO33_BAT_ADC")
+b.part("Device:C","C4","100 nF",165,205,"Capacitor_SMD:C_0805_2012Metric"); b.two("C4","GPIO33_BAT_ADC","GND")
+b.part("Device:D_Schottky","D2","BAT54 LOW CLAMP",205,195,"Diode_SMD:D_SOD-323"); b.two("D2","GPIO33_BAT_ADC","GND")
+b.part("Device:D_Schottky","D14","BAT54 HIGH CLAMP",205,215,"Diode_SMD:D_SOD-323"); b.two("D14","3V3","GPIO33_BAT_ADC")
+for ref,net,x in [("TP64","BAT_RAW",260),("TP65","BAT_FUSED",300),("TP66","VBAT_SW",340),("TP67","ACT_VBAT",380),("TP68","GND",410)]:
+    testpoint(b,ref,net,x,235)
+flags(b,[("#FLG13","BAT_FUSED")])
+b.save()
+
+# --------------------------------------------------------- Sheet 2: regulators
+p=Sheet("01_power_and_pi.kicad_sch","Logic Buck and Raspberry Pi Power",2)
 
 p.text("5 V CONTROL BUCK — ESP32 AND LOGIC ONLY",80,130,1.8,True)
 p.part("Regulator_Switching:LM2596S-5","U1","LM2596S-5.0",70,158,"Package_TO_SOT_SMD:TO-263-5_TabPin3")
@@ -181,11 +208,11 @@ p.part("Device:C_Polarized","C30","DNP OPTIONAL BULK 470 uF 10 V",370,195,"Capac
 for ref,net,x,y in [("TP1","BAT_RAW",30,225),("TP2","VBAT_SW",75,225),("TP3","ACT_VBAT",120,225),
                     ("TP4","+5V_CTRL",165,225),("TP5","PI_5V",210,225),("TP6","GND",255,225)]:
     testpoint(p,ref,net,x,y)
-flags(p,[("#FLG01","BAT_RAW"),("#FLG02","VBAT_SW"),("#FLG03","ACT_VBAT"),("#FLG04","PI_5V"),("#FLG05","GND")])
+flags(p,[("#FLG01","BAT_RAW"),("#FLG02","VBAT_SW"),("#FLG03","ACT_VBAT"),("#FLG04","PI_5V"),("#FLG05","GND"),("#FLG17","+5V_CTRL")])
 p.save()
 
 # -------------------------------------------------------------- Sheet 2
-c=Sheet("02_esp32_and_pi.kicad_sch","ESP32 Carrier, Raspberry Pi UART, and Status LEDs",2)
+c=Sheet("02_esp32_and_pi.kicad_sch","ESP32 Carrier, Raspberry Pi UART, and Status LEDs",3)
 c.text("ESP32-PICO-KIT V4.1 CARRIER — CONFIRMED 17.78 mm ROW SPACING",100,18,2.0,True)
 c.part("Connector_Generic:Conn_02x17_Odd_Even","J2","ESP32-PICO-KIT V4.1",85,100,"PickleballRobot:ESP32_PICO_KIT_V4_1_Carrier")
 left=["GPIO21_I2C_SDA","GPIO22_I2C_SCL","GPIO19_PI_TX","GPIO23_MOTOR_DIAG","GPIO18_PI_RX",None,None,None,None,None,"GPIO35_ENC_LB","GPIO34_ENC_LA","GPIO38_ENC_RB","GPIO37_ENC_RA",None,"GND","3V3"]
@@ -283,11 +310,11 @@ def motor_sheet(filename,title,num,u,j,prefix,xgpio):
     flags(m,[("#FLG09" if prefix=="LEFT" else "#FLG10",branch)],260)
     m.save()
 
-motor_sheet("03_left_motor.kicad_sch","Left Wheel Motor Driver",3,"U2","J4","LEFT",("GPIO25_L_PWM","GPIO26_L_INA","GPIO27_L_INB","SENSOR_VP_GPIO36","LEFT_ENC_A_CABLE","LEFT_ENC_B_CABLE"))
-motor_sheet("04_right_motor.kicad_sch","Right Wheel Motor Driver",4,"U3","J5","RIGHT",("GPIO14_R_PWM","GPIO13_R_INA","GPIO4_R_INB","SENSOR_VN_GPIO39","RIGHT_ENC_A_CABLE","RIGHT_ENC_B_CABLE"))
+motor_sheet("03_left_motor.kicad_sch","Left Wheel Motor Driver",4,"U2","J4","LEFT",("GPIO25_L_PWM","GPIO26_L_INA","GPIO27_L_INB","SENSOR_VP_GPIO36","LEFT_ENC_A_CABLE","LEFT_ENC_B_CABLE"))
+motor_sheet("04_right_motor.kicad_sch","Right Wheel Motor Driver",5,"U3","J5","RIGHT",("GPIO14_R_PWM","GPIO13_R_INA","GPIO4_R_INB","SENSOR_VN_GPIO39","RIGHT_ENC_A_CABLE","RIGHT_ENC_B_CABLE"))
 
 # -------------------------------------------------------------- Sheet 5
-e=Sheet("05_encoder_inputs.kicad_sch","Wheel Encoder Input Conditioning",5)
+e=Sheet("05_encoder_inputs.kicad_sch","Wheel Encoder Input Conditioning",6)
 e.text("FOUR 3.3 V SCHMITT-BUFFERED ENCODER INPUTS",95,18,2.1,True)
 e.part("Device:FerriteBead","FB1","BLM21PG221SN1D 220R@100MHz",45,45,"Inductor_SMD:L_0805_2012Metric"); e.two("FB1","3V3","ENC_3V3")
 e.part("Device:C","C84","10 uF 10 V",80,38,"Capacitor_SMD:C_0805_2012Metric"); e.two("C84","ENC_3V3","GND")
@@ -309,7 +336,7 @@ for idx,(net,label) in enumerate([("ENC_3V3","ENC 3V3"),("LEFT_ENC_A_RAW","L A R
 e.save()
 
 # -------------------------------------------------------------- Sheet 6
-s=Sheet("06_arm_servos.kicad_sch","Servo Power Regulator and 3-DOF Arm Control",6)
+s=Sheet("06_arm_servos.kicad_sch","Servo Power Regulator and 3-DOF Arm Control",7)
 s.text("6 V / 5 A SERVO BUCK",65,18,2.1,True)
 s.part("Regulator_Switching:TPS54560BDDA","U10","TPS54560BDDA",70,65,"Package_SO:TI_SO-PowerPAD-8_ThermalVias")
 for pin,net in [(1,"SERVO_BOOT"),(2,"ACT_VBAT"),(3,"SERVO_POWER_ENABLE"),(4,"SERVO_RT"),(5,"SERVO_FB"),(6,"SERVO_COMP"),(7,"GND"),(8,"SERVO_BUCK_SW"),(9,"GND")]: s.net("U10",pin,net)
@@ -344,13 +371,17 @@ s.part("Device:R","R50","4.7 k",195,185,"Resistor_SMD:R_0805_2012Metric"); s.two
 s.part("Device:R","R51","4.7 k",195,210,"Resistor_SMD:R_0805_2012Metric"); s.two("R51","GPIO22_I2C_SCL","3V3")
 s.part("Device:R","R52","10 k DEFAULT DISABLED",195,235,"Resistor_SMD:R_0805_2012Metric"); s.two("R52","GPIO32_SERVO_OE","3V3")
 def servo(idx,ref,label,x,power_net="SERVO_6V"):
-    raw=f"SERVO{idx}_PWM_RAW"; sig=f"SERVO{idx}_PWM"; rser=f"R{60+idx*2}"; rpd=f"R{61+idx*2}"
-    s.part("Device:R",rser,"220 R",x,185,"Resistor_SMD:R_0805_2012Metric"); s.two(rser,raw,sig)
-    s.part("Device:R",rpd,"10 k pulldown",x,215,"Resistor_SMD:R_0805_2012Metric"); s.two(rpd,sig,"GND")
-    s.part("Connector_Generic:Conn_01x03",ref,label,x,255,"Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical")
+    raw=f"SERVO{idx}_PWM_RAW"; buf=f"SERVO{idx}_PWM_5V_BUF"; sig=f"SERVO{idx}_PWM"; rser=f"R{60+idx*2}"; rpd=f"R{61+idx*2}"
+    uref=f"U{13+idx}"; cref=f"C{71+idx}"
+    s.part("74xGxx:74AHCT1G125",uref,"SN74AHCT1G125DBVR 3V3-TO-4V85 PWM",x,175,"Package_TO_SOT_SMD:SOT-23-5_HandSoldering")
+    for pin,net in [(1,"GPIO32_SERVO_OE"),(2,raw),(3,"GND"),(4,buf),(5,"WRIST_4V85")]: s.net(uref,pin,net)
+    s.part("Device:C",cref,"100 nF",x,145,"Capacitor_SMD:C_0805_2012Metric"); s.two(cref,"WRIST_4V85","GND")
+    s.part("Device:R",rser,"220 R",x,210,"Resistor_SMD:R_0805_2012Metric"); s.two(rser,buf,sig)
+    s.part("Device:R",rpd,"10 k pulldown",x,225,"Resistor_SMD:R_0805_2012Metric"); s.two(rpd,sig,"GND")
+    s.part("Connector_Generic:Conn_01x03",ref,label,x,245,"Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical")
     s.net(ref,1,"GND"); s.net(ref,2,power_net); s.net(ref,3,sig)
-servo(0,"J12","MIUZEI 25KG 270 DEG",255,"MAIN_SERVO_8V4"); servo(1,"J13","ELBOW MG996R",315); servo(2,"J14","WRIST MG90S",375)
-s.text("Header order: pin 1 GND, pin 2 power, pin 3 PWM. J12 = 8.4 V; J13/J14 = 6 V.",225,238,1.3)
+servo(0,"J12","MIUZEI 25KG 270 DEG",255,"MAIN_SERVO_8V4"); servo(1,"J13","ELBOW MG996R",315); servo(2,"J14","WRIST MG90S",375,"WRIST_4V85")
+s.text("AHCT buffers guarantee 4.85 V PWM from 3.3 V logic and power off with the servo rails. Headers: 1 GND, 2 power, 3 PWM.",225,125,1.15)
 flags(s,[("#FLG06","SERVO_6V")],245)
 for ref,net,x in [("TP50","ACT_VBAT",25),("TP51","SERVO_POWER_ENABLE",75),("TP52","SERVO_6V",125),
                   ("TP53","GPIO21_I2C_SDA",175),("TP54","GPIO22_I2C_SCL",225),("TP55","GPIO32_SERVO_OE",275),("TP56","GND",325)]:
@@ -358,7 +389,7 @@ for ref,net,x in [("TP50","ACT_VBAT",25),("TP51","SERVO_POWER_ENABLE",75),("TP52
 s.save()
 
 # -------------------------------------------------------------- Sheet 7
-h=Sheet("07_main_servo_8v4.kicad_sch","Miuzei Main-Swing Servo 8.4 V Power Rail",7)
+h=Sheet("07_main_servo_8v4.kicad_sch","Miuzei 8.4 V and MG90S 4.85 V Power Rails",8)
 h.text("DEDICATED 8.4 V / 5 A BUCK FOR MIUZEI 25KG 270 DEG SERVO",120,18,2.0,True)
 h.part("Regulator_Switching:TPS54560BDDA","U11","TPS54560BDDA",95,75,"Package_SO:TI_SO-PowerPAD-8_ThermalVias")
 for pin,net in [(1,"MAIN8_BOOT"),(2,"ACT_VBAT"),(3,"SERVO_POWER_ENABLE"),(4,"MAIN8_RT"),(5,"MAIN8_FB"),(6,"MAIN8_COMP"),(7,"GND"),(8,"MAIN8_SW"),(9,"GND")]: h.net("U11",pin,net)
@@ -383,10 +414,19 @@ h.part("Device:C_Polarized","C61","DNP OPTIONAL Panasonic EEU-FR1E221 220 uF 25 
 h.part("Connector_Generic:Conn_01x02","J17","8.4 V TEST / AUX OUT",330,145,"TerminalBlock:TerminalBlock_MaiXu_MX126-5.0-02P_1x02_P5.00mm"); h.net("J17",1,"MAIN_SERVO_8V4"); h.net("J17",2,"GND")
 h.part("Device:R","R112","2.2 k",300,190,"Resistor_SMD:R_0805_2012Metric"); h.two("R112","MAIN_SERVO_8V4","LED_MAIN8")
 h.part("Device:LED","D13","PURPLE 8.4 V",350,190,"LED_SMD:LED_0805_2012Metric"); h.two("D13","GND","LED_MAIN8")
-h.text("U11 uses 96.9 k / 10.2 k feedback resistors for approximately 8.40 V. J12 is the only servo powered from this rail.",180,210,1.3)
-h.text("J13 MG996R and J14 MG90S remain on the separate regulated 6 V rail.",145,220,1.3)
-flags(h,[("#FLG08","MAIN_SERVO_8V4")],245)
-for ref,net,x in [("TP60","ACT_VBAT",50),("TP61","SERVO_POWER_ENABLE",110),("TP62","MAIN_SERVO_8V4",180),("TP63","GND",260)]:
+h.text("MG90S DEDICATED 4.85 V / 1.5 A RAIL",80,185,1.8,True)
+h.part("Regulator_Linear:LT1963AEQ","U16","LT1963AEQ#PBF 1.5 A ADJUSTABLE LDO",90,210,"Package_TO_SOT_SMD:TO-263-5_TabPin3")
+for pin,net in [(1,"SERVO_POWER_ENABLE"),(2,"SERVO_6V"),(3,"GND"),(4,"WRIST_4V85_RAW"),(5,"WRIST_LDO_ADJ")]: h.net("U16",pin,net)
+h.part("Device:C","C74","10 uF 10 V X7R",45,205,"Capacitor_SMD:C_0805_2012Metric"); h.two("C74","SERVO_6V","GND")
+h.part("Device:R","R123","3.01 k 1%",130,205,"Resistor_SMD:R_0805_2012Metric"); h.two("R123","WRIST_4V85_RAW","WRIST_LDO_ADJ")
+h.part("Device:R","R124","1.00 k 1%",130,230,"Resistor_SMD:R_0805_2012Metric"); h.two("R124","WRIST_LDO_ADJ","GND")
+h.part("Device:C","C75","22 uF 10 V X7R",175,205,"Capacitor_SMD:C_1210_3225Metric"); h.two("C75","WRIST_4V85_RAW","GND")
+h.part("Device:Polyfuse","F9","1.5 A PTC MF-MSMF150/16X",215,205,"Fuse:Fuse_1812_4532Metric"); h.two("F9","WRIST_4V85_RAW","WRIST_4V85")
+h.part("Device:C_Polarized","C91","220 uF 10 V LOW ESR",255,205,"Capacitor_THT:CP_Radial_D8.0mm_P3.50mm"); h.two("C91","WRIST_4V85","GND")
+h.text("U11 uses 96.9 k / 10.2 k for 8.40 V. U16 uses 3.01 k / 1.00 k for about 4.85 V.",225,235,1.2)
+h.text("J12=Miuzei 8.4 V; J13=MG996R 6 V; J14=MG90S 4.85 V.",250,245,1.2)
+flags(h,[("#FLG08","MAIN_SERVO_8V4"),("#FLG18","WRIST_4V85")],245)
+for ref,net,x in [("TP60","ACT_VBAT",50),("TP61","SERVO_POWER_ENABLE",110),("TP62","MAIN_SERVO_8V4",180),("TP63","GND",260),("TP69","WRIST_4V85",330)]:
     testpoint(h,ref,net,x,170)
 h.save()
 
@@ -394,24 +434,25 @@ h.save()
 root=create_schematic("pickleball_robot_controller")
 root.set_paper_size("A4")
 root.set_title_block(title="Pickleball Robot Controller — Hierarchical Overview",date="2026-07-12",rev="R2-MULTISHEET",company="Harrison")
-root.add_text("PICKLEBALL ROBOT CONTROLLER — SEVEN READABLE KICAD SHEETS",(25,20),size=2.2,bold=True)
+root.add_text("PICKLEBALL ROBOT CONTROLLER — EIGHT READABLE KICAD SHEETS",(90,15),size=2.2,bold=True)
 sheet_defs=[
-    ("01 Power and Pi","01_power_and_pi.kicad_sch",(25,40)),
-    ("02 ESP32 and Pi UART","02_esp32_and_pi.kicad_sch",(120,40)),
-    ("03 Left Motor","03_left_motor.kicad_sch",(25,90)),
-    ("04 Right Motor","04_right_motor.kicad_sch",(120,90)),
-    ("05 Encoders","05_encoder_inputs.kicad_sch",(25,140)),
-    ("06 Arm Servos","06_arm_servos.kicad_sch",(120,140)),
-    ("07 Main Servo 8.4V","07_main_servo_8v4.kicad_sch",(72,185)),
+    ("00 Battery Safety","00_battery_safety.kicad_sch",(25,32)),
+    ("01 Power and Pi","01_power_and_pi.kicad_sch",(120,32)),
+    ("02 ESP32 and Pi UART","02_esp32_and_pi.kicad_sch",(25,62)),
+    ("03 Left Motor","03_left_motor.kicad_sch",(120,62)),
+    ("04 Right Motor","04_right_motor.kicad_sch",(25,92)),
+    ("05 Encoders","05_encoder_inputs.kicad_sch",(120,92)),
+    ("06 Arm Servos","06_arm_servos.kicad_sch",(25,122)),
+    ("07 Main Servo 8.4V","07_main_servo_8v4.kicad_sch",(120,122)),
 ]
 sheet_ids=[]
 for i,(name,file,pos) in enumerate(sheet_defs,1):
-    sheet_ids.append(root.add_sheet(name,file,pos,(70,28),project_name="pickleball_robot_controller",page_number=str(i+1)))
-root.add_text("Global net labels connect the sheets. Open any sheet from the hierarchy panel.",(35,225),size=1.3)
+    sheet_ids.append(root.add_sheet(name,file,pos,(70,20),project_name="pickleball_robot_controller",page_number=str(i+1)))
+root.add_text("Global net labels connect the sheets. Open any sheet from the hierarchy panel.",(75,152),size=1.3)
 root.save_as(ROOT/"pickleball_robot_controller.kicad_sch",preserve_format=False)
 
 # kicad-sch-api creates each child as a standalone project. Re-home every child
-# instance path under the root/sheet UUID so KiCad treats the six files as six
+# instance path under the root/sheet UUID so KiCad treats the child files as
 # distinct hierarchy pages rather than overlaying their coordinates/nets.
 root_raw=(ROOT/"pickleball_robot_controller.kicad_sch").read_text(encoding="utf-8")
 root_uuid=re.search(r'\(uuid "([0-9a-f-]+)"\)',root_raw).group(1)
@@ -428,4 +469,4 @@ for page,((name,file,pos),sheet_uuid) in enumerate(zip(sheet_defs,sheet_ids),2):
 pro=ROOT/"pickleball_robot_controller.kicad_pro"
 if not pro.exists():
     pro.write_text(json.dumps({"board":{},"boards":[],"cvpcb":{},"erc":{},"libraries":{},"meta":{"filename":pro.name,"version":1},"net_settings":{},"pcbnew":{},"schematic":{},"text_variables":{}},indent=2),encoding="utf-8")
-print("Generated root and seven KiCad schematic sheets")
+print("Generated root and eight KiCad schematic sheets")

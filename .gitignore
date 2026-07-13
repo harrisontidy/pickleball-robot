@@ -2,6 +2,7 @@
 *.kicad_prl
 *.lck
 ~*.kicad_*.lck
+.history/
 
 # Generated local checks and temporary outputs
 generator.log

@@ -13,20 +13,21 @@ The robot is a mobile pickleball player that detects an incoming ball, moves int
 - ESP32-PICO-KIT V4.1 carrier: 2.54 mm pitch, 17 populated positions per side, 17.78 mm row spacing.
 - Main swing: Miuzei 25KG 270° digital servo at 8.4 V.
 - Elbow: MG996R at 6 V.
-- Wrist: MG90S at 6 V.
+- Wrist: MG90S at 4.85 V from its dedicated U16 LDO.
 
 ## Current electrical architecture
 
 - J1 is a board-mounted AMASS XT60PW-M input; its library footprint is pin 1 negative/GND and pin 2 positive/BAT_RAW.
 - F1 is the 15 A main battery fuse.
-- `VBAT_SW` powers Pi and logic.
-- J18 is a high-current external DC-rated latching E-stop loop. Opening it removes `ACT_VBAT` from both wheels and both servo regulators while Pi/ESP logic remains powered.
+- U12 LTC4365 and back-to-back IRLB4030PBF MOSFETs disconnect the whole board below approximately 9.62 V, reconnect near 10.10 V, and reject input above approximately 13.79 V.
+- `VBAT_SW` is the protected output and powers Pi and logic.
+- The external E-stop uses Schneider XB5AS8442 NC contacts to control a Panasonic CB1aF-RM-12V-A-5 resistor-suppressed relay coil from J21. The relay's 40 A NO contact bridges J18; pressing E-stop or breaking the coil loop removes `ACT_VBAT`.
 - D21 clamps actuator-bus regenerative transients locally.
 - U1 makes the ESP32/logic 5 V rail.
 - U4 makes approximately 5.1 V for Raspberry Pi J9. Its EN pin uses a divider rather than direct battery voltage.
-- U10 makes 6 V for J13/J14. U11 makes 8.4 V for J12.
+- U10 makes 6 V for the MG996R at J13. U11 makes 8.4 V for J12. U16 derives 4.85 V from the 6 V rail for the MG90S at J14.
 - Pi GPIO17 controls `SERVO_POWER_ENABLE`, which defaults low. It does not switch wheel power; wheel startup safety comes from hardware pull-downs and the E-stop.
-- The PCB voltage monitor is not a complete hardware 3S undervoltage disconnect. A protected battery/BMS/external LVD or an onboard high-side disconnect is still required before unrestricted LiPo use.
+- The cutoff monitors total pack voltage; it is not a balance charger or per-cell BMS. Charge with a proper 3S balance charger and periodically check individual cells.
 
 ## Canonical ESP32 assignments
 
@@ -78,6 +79,8 @@ J15/J16 large pads are the primary motor-power connection. JST-PH motor pins 1/6
 ## Servo behavior
 
 PCA9685 channels LED0/1/2 independently command J12/J13/J14. All share a 50 Hz frame but have independent pulse widths. Normal hobby servo wiring provides no position feedback to the ESP32; the servo's internal potentiometer/encoder is used only by its internal controller.
+
+U13/U14/U15 are SN74AHCT1G125 buffers powered by the 4.85 V wrist rail. They accept 3.3 V PCA9685 outputs and produce 4.85 V PWM for the Miuzei, MG996R, and MG90S. Their OE pins share the PCA9685 active-low OE signal, and removing servo power also removes buffer power.
 
 ## Firmware safety requirements
 
