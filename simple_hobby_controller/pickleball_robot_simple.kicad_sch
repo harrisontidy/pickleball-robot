@@ -1,0 +1,125 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "c5a03a22-6458-40bc-9f85-a426ca2b5b75")
+	(paper "A4")
+	(title_block
+		(title "Pickleball Robot - Simple Hobby Controller")
+		(date "2026-07-12")
+		(rev "H1-SIMPLE")
+		(company "Harrison")
+	)
+	(lib_symbols)
+	(text "SIMPLE HOBBY CONTROLLER - TWO READABLE SCHEMATIC PAGES"
+		(exclude_from_sim no)
+		(at 70 20 0.0000)
+		(effects
+			(font
+				(size 2 2)
+				(bold yes)
+			)
+		)
+		(uuid "dc3ede39-b826-4c05-937e-2ff9996e8773")
+	)
+	(text "Open a page from the hierarchy panel. Global labels join nets between the two pages."
+		(exclude_from_sim no)
+		(at 45 125 0.0000)
+		(effects
+			(font
+				(size 1.3 1.3)
+			)
+		)
+		(uuid "643e3a40-db86-4dc9-996a-fc2e72d39052")
+	)
+	(sheet
+		(at 35 45)
+		(size 130 25)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "16e7df81-bf1a-4927-b261-af373fedac8d")
+		(property "Sheetname" "Power + dual wheel driver"
+			(at 35 44.2884 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "simple_01_power_motors.kicad_sch"
+			(at 35 70.5846 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "pickleball_robot_simple"
+				(path "/c5a03a22-6458-40bc-9f85-a426ca2b5b75"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet
+		(at 35 85)
+		(size 130 25)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(stroke
+			(width 0.1524)
+			(type solid)
+		)
+		(fill
+			(color 0 0 0 0.0000)
+		)
+		(uuid "77d8af3d-e1ce-4b27-91ae-0678f28405f6")
+		(property "Sheetname" "ESP32 + servos + UART"
+			(at 35 84.2884 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left bottom)
+			)
+		)
+		(property "Sheetfile" "simple_02_esp_servos_uart.kicad_sch"
+			(at 35 110.5846 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left top)
+			)
+		)
+		(instances
+			(project "pickleball_robot_simple"
+				(path "/c5a03a22-6458-40bc-9f85-a426ca2b5b75"
+					(page "2")
+				)
+			)
+		)
+	)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
+)

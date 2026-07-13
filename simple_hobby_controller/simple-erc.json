@@ -1,0 +1,46 @@
+{
+    "$schema": "https://schemas.kicad.org/erc.v1.json",
+    "coordinate_units": "mm",
+    "date": "2026-07-12T20:24:05",
+    "ignored_checks": [
+        {
+            "description": "Global label only appears once in the schematic",
+            "key": "single_global_label"
+        },
+        {
+            "description": "Four connection points are joined together",
+            "key": "four_way_junction"
+        },
+        {
+            "description": "SPICE model issue",
+            "key": "simulation_model_issue"
+        },
+        {
+            "description": "Assigned footprint doesn't match footprint filters",
+            "key": "footprint_filter"
+        }
+    ],
+    "included_severities": [
+        "error",
+        "warning"
+    ],
+    "kicad_version": "10.0.4",
+    "sheets": [
+        {
+            "path": "/",
+            "uuid_path": "/c5a03a22-6458-40bc-9f85-a426ca2b5b75",
+            "violations": []
+        },
+        {
+            "path": "/Power + dual wheel driver/",
+            "uuid_path": "/c5a03a22-6458-40bc-9f85-a426ca2b5b75/16e7df81-bf1a-4927-b261-af373fedac8d",
+            "violations": []
+        },
+        {
+            "path": "/ESP32 + servos + UART/",
+            "uuid_path": "/c5a03a22-6458-40bc-9f85-a426ca2b5b75/77d8af3d-e1ce-4b27-91ae-0678f28405f6",
+            "violations": []
+        }
+    ],
+    "source": "pickleball_robot_simple.kicad_sch"
+}
