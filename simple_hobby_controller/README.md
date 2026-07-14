@@ -12,8 +12,9 @@ Open `pickleball_robot_simple.kicad_pro` in KiCad 10. The project contains the s
 - Two pairs of large solder pads for optional heavier motor wires.
 - Three independent 5 V servo headers. Each has its own ESP32 PWM signal.
 - One normal 2.54 mm Raspberry Pi UART header.
+- One four-contact Micro-Fit Raspberry Pi power output on the shared 5 V rail.
 - XT60 3S battery input for the wheel driver.
-- XT30 regulated 5 V input for the ESP32 and servos.
+- On-board LM2678T-5.0 buck converter that makes the shared 5 V rail from the 3S battery.
 - One motor fuse, one motor bulk capacitor, one servo bulk capacitor, and the required local bypass parts.
 
 There is no PCA9685, no on-board high-current buck converter, no level shifter, no BMS, no current-sense circuitry, and no extra status/test-point forest.
@@ -21,11 +22,11 @@ There is no PCA9685, no on-board high-current buck converter, no level shifter, 
 ## Power wiring
 
 1. Connect the 3S LiPo to J1 (XT60). This powers only the wheel H-bridge.
-2. Use a battery Y lead to feed an external **regulated 5 V, 5-8 A RC UBEC**.
-3. Connect the UBEC's regulated output to J2 (XT30). This powers the ESP32 carrier and all three servos.
-4. Power the Raspberry Pi separately through a proper Pi 5 V supply or USB-C regulator. J11 does not power the Pi.
+2. The on-board LM2678T-5.0 buck converts the battery voltage to the single shared +5 V rail.
+3. That rail powers the ESP32 carrier, all three servos, and Raspberry Pi power output J12.
+4. Wire both J12 +5 V contacts to Raspberry Pi header pins 2 and 4. Wire both J12 ground contacts to two Pi ground pins, such as pins 6 and 9.
 
-The amp rating is capacity, not forced current: a 5-8 A UBEC does not push 8 A into the servos. Each load draws only what it needs. The extra capacity prevents the ESP32 from resetting when a servo starts or is briefly loaded.
+The fixed LM2678 buck is rated up to 5 A. That is enough for normal hobby testing, but it is not enough to guarantee a Raspberry Pi 5 plus three simultaneously stalled servos at maximum load. Each device draws only what it needs; if bench testing shows repeated 5 V brownouts, the simple fix is to power the Pi separately or change to a larger buck stage.
 
 ## Connector pinouts
 
@@ -50,6 +51,12 @@ Pi UART J11:
 2. Pi TX to ESP32 GPIO18 RX
 3. ESP32 GPIO19 TX to Pi RX
 4. 3.3 V reference only; do not use it to power either computer
+
+Pi power J12:
+
+- Pins 1 and 2: shared regulated +5 V
+- Pins 3 and 4: ground
+- Use both contacts of each polarity so the current is shared between wires
 
 ## ESP32 signal map
 
@@ -83,8 +90,8 @@ Pi UART J11:
 - Confirm the physical JST connector keying and cable order against both motors.
 - Measure motor stall current briefly with a current-limited bench supply.
 - Confirm each servo behaves correctly at 5.0 V.
-- Assign board rules: approximately 1.5-2.0 mm copper for battery/motor paths on 1 oz copper, 1.0-1.5 mm for the 5 V servo trunk, and 0.25 mm for logic signals. Use solid ground pours on both layers.
-- Put J1-J4 and J8-J11 at board edges. Put C1 beside U1 and C3 beside the servo headers. Give U1 a large exposed-pad copper area with thermal vias.
+- Assign board rules: approximately 1.5-2.0 mm copper for battery/motor paths on 1 oz copper. Use a wide 5 V copper pour for the combined Pi/servo rail rather than a thin trace, and 0.25 mm traces for logic signals. Use solid ground pours on both layers.
+- Put J1, J3-J4, J8-J12 at board edges. Follow the LM2678 datasheet layout closely: keep U2, D1, C1-C2, L1, and C7-C8 close together with a very small switching loop. Put C3 beside the servo/Pi branches. Give U1 a large exposed-pad copper area with thermal vias.
 - Run KiCad ERC again after any edit and DRC after routing.
 
 The generated `simple-erc.json` currently reports **zero violations**.

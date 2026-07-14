@@ -2,7 +2,7 @@
 	(version 20250114)
 	(generator "eeschema")
 	(generator_version "9.0")
-	(uuid "c5a03a22-6458-40bc-9f85-a426ca2b5b75")
+	(uuid "6df0ee1a-c63b-4ad4-8bcd-d4ab373e7ba7")
 	(paper "A4")
 	(title_block
 		(title "Pickleball Robot - Simple Hobby Controller")
@@ -20,7 +20,7 @@
 				(bold yes)
 			)
 		)
-		(uuid "dc3ede39-b826-4c05-937e-2ff9996e8773")
+		(uuid "79c2e7fa-f686-4b4f-ac85-6cfddb0f4f19")
 	)
 	(text "Open a page from the hierarchy panel. Global labels join nets between the two pages."
 		(exclude_from_sim no)
@@ -30,7 +30,7 @@
 				(size 1.3 1.3)
 			)
 		)
-		(uuid "643e3a40-db86-4dc9-996a-fc2e72d39052")
+		(uuid "4beb6a16-ab58-44dd-b3c1-302e34a22ef1")
 	)
 	(sheet
 		(at 35 45)
@@ -47,7 +47,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "16e7df81-bf1a-4927-b261-af373fedac8d")
+		(uuid "f9b695e0-427f-4619-80f0-157a906abb0a")
 		(property "Sheetname" "Power + dual wheel driver"
 			(at 35 44.2884 0)
 			(effects
@@ -68,7 +68,7 @@
 		)
 		(instances
 			(project "pickleball_robot_simple"
-				(path "/c5a03a22-6458-40bc-9f85-a426ca2b5b75"
+				(path "/6df0ee1a-c63b-4ad4-8bcd-d4ab373e7ba7"
 					(page "2")
 				)
 			)
@@ -89,7 +89,7 @@
 		(fill
 			(color 0 0 0 0.0000)
 		)
-		(uuid "77d8af3d-e1ce-4b27-91ae-0678f28405f6")
+		(uuid "0037a72a-c13a-44ed-98be-bca8f0dd50a2")
 		(property "Sheetname" "ESP32 + servos + UART"
 			(at 35 84.2884 0)
 			(effects
@@ -110,7 +110,7 @@
 		)
 		(instances
 			(project "pickleball_robot_simple"
-				(path "/c5a03a22-6458-40bc-9f85-a426ca2b5b75"
+				(path "/6df0ee1a-c63b-4ad4-8bcd-d4ab373e7ba7"
 					(page "2")
 				)
 			)

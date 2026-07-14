@@ -19,7 +19,7 @@ class Sheet:
     def part(self, lib, ref, value, x, y, footprint="", rotation=0.0):
         # KiCad's two-pin device symbols are vertical at 0 degrees.  Keeping
         # them horizontal makes the labels read left-to-right with no stacks.
-        if rotation == 0.0 and lib in {"Device:R","Device:C","Device:C_Polarized","Device:Fuse"}:
+        if rotation == 0.0 and lib in {"Device:R","Device:C","Device:C_Polarized","Device:Fuse","Device:L","Device:D_Schottky"}:
             rotation = 90.0
             self.horizontal_refs.add(ref)
         return self.s.components.add(lib, reference=ref, value=value,
@@ -57,24 +57,37 @@ p=Sheet("simple_01_power_motors.kicad_sch","Simple Power and Dual Wheel Driver",
 p.text("POWER INPUTS",45,20,2.0,True)
 p.part("Connector_Generic:Conn_01x02","J1","3S BATTERY XT60",45,52,"Connector_AMASS:AMASS_XT60PW-M_1x02_P7.20mm_Horizontal")
 p.net("J1",1,"VBAT_3S"); p.net("J1",2,"GND")
-p.part("Device:Fuse","F1","3 A MINI BLADE - CHANGE AFTER STALL TEST",85,42,"Fuse:Fuseholder_Blade_Mini_Keystone_3568"); p.two("F1","VBAT_3S","MOTOR_VM")
-p.part("Device:C_Polarized","C1","470 uF 25 V MOTOR BULK",125,42,"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm"); p.two("C1","MOTOR_VM","GND")
-p.part("Device:C","C2","100 nF 25 V",155,42,C0805); p.two("C2","MOTOR_VM","GND")
-p.part("Connector_Generic:Conn_01x02","J2","REGULATED 5 V INPUT XT30",45,92,"Connector_AMASS:AMASS_XT30PW-M_1x02_P2.50mm_Horizontal")
-p.net("J2",1,"+5V"); p.net("J2",2,"GND")
-p.part("Device:C_Polarized","C3","1000 uF 10 V SERVO BULK",90,82,"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm"); p.two("C3","+5V","GND")
-p.part("Device:C","C4","100 nF",125,82,C0805); p.two("C4","+5V","GND")
-p.text("J2 MUST receive regulated 5 V from an external 5-8 A RC UBEC. Never connect the 3S battery directly to J2.",170,118,1.25)
+p.part("Device:Fuse","F1","10 A MAIN MINI BLADE",80,42,"Fuse:Fuseholder_Blade_Mini_Keystone_3568"); p.two("F1","VBAT_3S","VBAT_FUSED")
+p.part("Device:C_Polarized","C1","470 uF 25 V INPUT BULK",120,42,"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm"); p.two("C1","VBAT_FUSED","GND")
+p.part("Device:C","C2","100 nF 25 V",155,42,C0805); p.two("C2","VBAT_FUSED","GND")
+p.text("ON-BOARD 3S TO 5 V BUCK",115,75,1.8,True)
+# LM2678T-5.0 TO-220 pinout: 1 SW, 2 IN, 3 BOOST, 4 GND, 5 NC, 6 FB, 7 ON/OFF.
+# A generic seven-pin block is used because KiCad 10 has no stock LM2678 symbol;
+# the exact TO-220-7 footprint and pin numbers are assigned.
+p.part("Connector_Generic:Conn_01x07","U2","LM2678T-5.0 FIXED 5 A BUCK",90,115,"Package_TO_SOT_THT:TO-220-7_P2.54x5.08mm_StaggerOdd_Lead3.08mm_Vertical")
+for pin,net in [(1,"BUCK_SW"),(2,"VBAT_FUSED"),(3,"BUCK_BOOST"),(4,"GND"),(6,"+5V"),(7,"GND")]: p.net("U2",pin,net)
+p.nc("U2",5)
+p.part("Device:C","C6","10 nF 50 V BOOST",135,95,C0805); p.two("C6","BUCK_BOOST","BUCK_SW")
+p.part("Device:D_Schottky","D1","SS54 5 A 40 V CATCH",135,120,"Diode_SMD:D_SMC"); p.two("D1","GND","BUCK_SW")
+p.part("Device:L","L1","22 uH >= 7 A",180,105,"Inductor_SMD:L_Bourns_SRP1770TA_16.9x16.9mm"); p.two("L1","BUCK_SW","+5V")
+p.part("Device:C_Polarized","C7","220 uF 16 V LOW ESR",220,85,"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm"); p.two("C7","+5V","GND")
+p.part("Device:C_Polarized","C8","220 uF 16 V LOW ESR",220,110,"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm"); p.two("C8","+5V","GND")
+p.part("Device:C_Polarized","C3","1000 uF 10 V SERVO/PI BULK",260,85,"Capacitor_THT:CP_Radial_D10.0mm_P5.00mm"); p.two("C3","+5V","GND")
+p.part("Device:C","C4","100 nF 10 V",260,110,C0805); p.two("C4","+5V","GND")
+p.part("Connector_Generic:Conn_02x02_Odd_Even","J12","RASPBERRY PI 5 V POWER OUT",335,145,"Connector_Molex:Molex_Micro-Fit_3.0_43045-0415_2x02_P3.00mm_Vertical")
+for pin,net in [(1,"+5V"),(2,"+5V"),(3,"GND"),(4,"GND")]: p.net("J12",pin,net)
+p.text("LM2678T-5.0 makes the shared 5 V rail on this PCB. It powers the ESP32, all three servos, and Pi output J12.",195,160,1.25)
+p.text("J12: two +5 V contacts to Pi pins 2+4; two GND contacts to two Pi ground pins.",195,170,1.15)
 
-p.text("ONE DUAL H-BRIDGE",260,20,2.0,True)
-p.part("Driver_Motor:DRV8848","U1","DRV8848PWP",260,82,"Package_SO:HTSSOP-16-1EP_4.4x5mm_P0.65mm_EP3.4x5mm_Mask3x3mm_ThermalVias")
-for pin,net in [(1,"3V3"),(2,"LEFT_OUT_A"),(3,"GND"),(4,"LEFT_OUT_B"),(5,"RIGHT_OUT_B"),(6,"GND"),(7,"RIGHT_OUT_A"),(8,"MOTOR_FAULT"),(9,"MOTOR_BIN1"),(10,"MOTOR_BIN2"),(11,"DRV_VINT"),(12,"MOTOR_VM"),(13,"GND"),(14,"DRV_VINT"),(15,"MOTOR_AIN2"),(16,"MOTOR_AIN1"),(17,"GND")]: p.net("U1",pin,net)
+p.text("ONE DUAL H-BRIDGE",340,20,2.0,True)
+p.part("Driver_Motor:DRV8848","U1","DRV8848PWP",340,82,"Package_SO:HTSSOP-16-1EP_4.4x5mm_P0.65mm_EP3.4x5mm_Mask3x3mm_ThermalVias")
+for pin,net in [(1,"3V3"),(2,"LEFT_OUT_A"),(3,"GND"),(4,"LEFT_OUT_B"),(5,"RIGHT_OUT_B"),(6,"GND"),(7,"RIGHT_OUT_A"),(8,"MOTOR_FAULT"),(9,"MOTOR_BIN1"),(10,"MOTOR_BIN2"),(11,"DRV_VINT"),(12,"VBAT_FUSED"),(13,"GND"),(14,"DRV_VINT"),(15,"MOTOR_AIN2"),(16,"MOTOR_AIN1"),(17,"GND")]: p.net("U1",pin,net)
 p.part("Device:C","C5","470 nF VINT",315,37,C0805); p.two("C5","DRV_VINT","GND")
 p.part("Device:R","R1","10 k FAULT PULLUP",350,37,R0805); p.two("R1","MOTOR_FAULT","3V3")
-p.part("power:PWR_FLAG","#FLG01","PWR_FLAG",180,82); p.net("#FLG01",1,"MOTOR_VM")
-p.part("power:PWR_FLAG","#FLG02","PWR_FLAG",180,102); p.net("#FLG02",1,"GND")
+p.part("power:PWR_FLAG","#FLG01","PWR_FLAG",300,42); p.net("#FLG01",1,"VBAT_FUSED")
+p.part("power:PWR_FLAG","#FLG02","PWR_FLAG",300,62); p.net("#FLG02",1,"GND")
 for i,(net,x,y) in enumerate([("MOTOR_AIN1",215,135),("MOTOR_AIN2",250,135),("MOTOR_BIN1",285,135),("MOTOR_BIN2",320,135)],1):
-    p.part("Device:R",f"R{i+1}","10 k STARTUP PULLDOWN",x,y,R0805); p.two(f"R{i+1}",net,"GND")
+    p.part("Device:R",f"R{i+1}","10 k STARTUP PULLDOWN",x,y+75,R0805); p.two(f"R{i+1}",net,"GND")
 p.text("DRV8848 contains both H-bridges, flyback paths, thermal shutdown, undervoltage and overcurrent protection.",205,165,1.25)
 
 def motor(ref,label,x,outa,outb,ea,eb):
@@ -114,7 +127,7 @@ c.text("RASPBERRY PI 3.3 V UART",300,205,1.8,True)
 c.part("Connector_Generic:Conn_01x04","J11","PI UART - 2.54 mm HEADER",300,240,"Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical")
 for pin,net in [(1,"GND"),(2,"PI_TX_TO_ESP"),(3,"ESP_TX_TO_PI"),(4,"3V3")]: c.net("J11",pin,net)
 c.text("J11: 1 GND; 2 Pi TX -> ESP GPIO18 RX; 3 ESP GPIO19 TX -> Pi RX; 4 is 3.3 V reference only.",245,275,1.15)
-c.text("DO NOT power the Raspberry Pi from J11. Power the Pi from its own proper 5 V supply/USB-C regulator.",245,285,1.15,True)
+c.text("J11 is UART only. Raspberry Pi power comes from the shared +5 V rail through high-current connector J12 on page 2.",245,285,1.15,True)
 c.save()
 
 # Root hierarchy.
