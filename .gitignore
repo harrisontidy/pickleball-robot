@@ -1,24 +1,39 @@
-# KiCad session, autosave, and lock files
+# Operating-system and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# KiCad local state, backups, and generated outputs
 *.kicad_prl
 *.lck
 ~*.kicad_*.lck
 .history/
+*-backups/
+*.gbr
+*.gbrjob
+*.drl
+*.pos
+*-bom.csv
+*-erc.json
+*.net
 
-# Generated local checks and temporary outputs
-generator.log
-schematic-svg/
-pickleball_controller*
-pickleball_robot_controller-erc.json
-pickleball_robot_controller.net
+# ESP-IDF build and machine-local configuration
+build/
+sdkconfig
+sdkconfig.old
+dependencies.lock
 
-# Python cache
+# Python caches and environments
 __pycache__/
 *.py[cod]
+.venv/
+venv/
 
-# Vision-model data, weights, and secrets
-*.pt
-*.onnx
-*.engine
-dataset/
-models/
+# Local secrets
 .env
+.env.*
+
+# Temporary files
+tmp/
+*.log

@@ -1,3 +1,0 @@
-(fp_lib_table
-  (lib (name "PickleballRobot")(type "KiCad")(uri "${KIPRJMOD}/../PickleballRobot.pretty")(options "")(descr "Pickleball robot custom footprints"))
-)

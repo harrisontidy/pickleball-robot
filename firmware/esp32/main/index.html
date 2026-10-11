@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate">
+  <title>PickleBot Controller</title>
+  <style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;background:#0c120e;color:#fff;font-family:Arial,sans-serif;overscroll-behavior:none}
+    body{padding:12px;display:flex;justify-content:center}.wrap{width:100%;max-width:520px}
+    .card{background:#18231b;border:1px solid #35483a;border-radius:18px;padding:16px;margin-bottom:12px}
+    h1{font-size:27px;margin:2px 0}h2{font-size:19px;margin:0 0 12px}.ver,.note{color:#a9b7ac;font-size:12px;line-height:1.4}
+    #status{background:#10301b;color:#8ff0aa;border-radius:11px;padding:10px;margin:12px 0;font-weight:bold;min-height:38px}
+    .bad{background:#3b1717!important;color:#ffabab!important}.warn{background:#342a11;color:#ffe28d;border-radius:10px;padding:9px;font-size:12px;margin-top:10px}
+    button{border:0;border-radius:12px;background:#35493b;color:white;font-weight:bold;touch-action:none;user-select:none;min-height:44px}
+    button.active{background:#4db96c;box-shadow:0 0 0 3px #a4f2b8 inset}.stop{background:#b53d3d}.primary{background:#27794b}.swing{background:#765728}.danger{background:#9f3838}
+    input[type=range]{width:100%;height:32px;accent-color:#72d58b}.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+    .presets button{height:43px}.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}.pad button{height:78px;font-size:31px}.blank{visibility:hidden}
+    .joint{border-top:1px solid #314136;padding:11px 0}.joint:first-of-type{border:0}.joint-head{display:flex;justify-content:space-between;font-size:14px;font-weight:bold}
+    .joint-controls{display:grid;grid-template-columns:48px 1fr 48px;gap:7px;align-items:center}.joint-controls button{font-size:20px}
+    #camera{width:100%;min-height:160px;max-height:320px;object-fit:contain;background:#080b09;border-radius:10px;margin-top:10px}
+    input[type=text]{width:100%;height:44px;border:1px solid #536158;border-radius:10px;background:#0e1510;color:white;padding:9px}
+  </style>
+</head>
+<body><div class="wrap">
+  <div class="card">
+    <h1>PickleBot Controller</h1><div class="ver">ESP controller v4 · wheels + four continuously-held servos</div>
+    <div id="status">ESP connected — wheels stopped</div>
+    <h2>Drive</h2>
+    <div><b>Speed: <span id="speedText">55</span>%</b></div>
+    <input id="speed" type="range" min="20" max="100" value="55">
+    <div class="row presets"><button data-speed="35">35%</button><button data-speed="55">55%</button><button data-speed="75">75%</button><button data-speed="100">100%</button></div>
+    <div class="pad">
+      <span class="blank"></span><button data-dir="f">▲</button><span class="blank"></span>
+      <button data-dir="l">◀</button><button class="stop" data-dir="s">STOP</button><button data-dir="r">▶</button>
+      <span class="blank"></span><button data-dir="b">▼</button><span class="blank"></span>
+    </div>
+    <div class="warn">Forward/backward polarity has been corrected for this chassis. Releasing a direction or losing commands stops the wheels.</div>
+  </div>
+
+  <div class="card">
+    <h2>Joints</h2>
+    <div class="joint" data-channel="0"><div class="joint-head"><span>J3 · Camera pan</span><span class="value">1500 µs</span></div><div class="joint-controls"><button class="minus">−</button><input type="range" min="500" max="2500" step="10" value="1500"><button class="plus">+</button></div></div>
+    <div class="joint" data-channel="1"><div class="joint-head"><span>J4 · Swing tilt</span><span class="value">1500 µs</span></div><div class="joint-controls"><button class="minus">−</button><input type="range" min="500" max="2500" step="10" value="1500"><button class="plus">+</button></div></div>
+    <div class="joint" data-channel="2"><div class="joint-head"><span>J5 · Main swing</span><span class="value">1500 µs</span></div><div class="joint-controls"><button class="minus">−</button><input type="range" min="500" max="2500" step="10" value="1500"><button class="plus">+</button></div></div>
+    <div class="joint" data-channel="3"><div class="joint-head"><span>J9 · Wrist / paddle axial tilt</span><span class="value">1500 µs</span></div><div class="joint-controls"><button class="minus">−</button><input type="range" min="500" max="2500" step="10" value="1500"><button class="plus">+</button></div></div>
+    <div class="row"><button class="primary" id="center">Center all</button><button class="swing" id="smallSwing">Small test swing</button></div>
+    <button class="swing" id="mainSwing" style="width:100%;margin-top:8px">Coordinated swing (J4 + J5 + J9)</button>
+    <p class="note">Every servo starts at the nominal 1500 µs center and continuously receives PWM. Swing routines return all four joints to 1500 µs. Manual controls permit 500–2500 µs; approach unknown end stops slowly.</p>
+  </div>
+
+  <div class="card">
+    <h2>Raspberry Pi camera</h2>
+    <div class="row"><input id="piAddress" type="text" value="192.168.4.2:8080"><button id="connectCamera">Connect</button></div>
+    <img id="camera" alt="Pi camera feed will appear here">
+    <p class="note">The Pi must be connected to the same network and running the camera service. Enter its IP and port above.</p>
+  </div>
+</div>
+<script>
+var speed=document.getElementById('speed'),speedText=document.getElementById('speedText'),statusBox=document.getElementById('status');
+var driveTimer=0,held=null,requestNumber=0,shownNumber=0;
+function show(text,bad){statusBox.className=bad?'bad':'';statusBox.textContent=text;}
+function mix(d,v){if(d==='f')return{l:v,r:v};if(d==='b')return{l:-v,r:-v};if(d==='l')return{l:-v,r:v};if(d==='r')return{l:v,r:-v};return{l:0,r:0};}
+function get(url,done){var x=new XMLHttpRequest();x.open('GET',url+(url.indexOf('?')<0?'?':'&')+'t='+Date.now(),true);x.onreadystatechange=function(){if(x.readyState===4&&done)done(x.status,x.responseText);};x.onerror=function(){if(done)done(0,'');};x.send();}
+function drive(d){var v=parseInt(speed.value,10),m=mix(d,v),n=++requestNumber;get('/api/drive?l='+m.l+'&r='+m.r,function(code){if(n>=shownNumber){shownNumber=n;if(code===200)show('ESP ACK: left '+m.l+'% / right '+m.r+'%',false);else show('No ESP reply — wheels stopping',true);}});}
+function releaseDrive(){if(driveTimer){clearInterval(driveTimer);driveTimer=0;}if(held){held.classList.remove('active');held=null;}drive('s');}
+function pressDrive(e){if(e)e.preventDefault();if(driveTimer)clearInterval(driveTimer);if(held)held.classList.remove('active');held=this;held.classList.add('active');var d=this.getAttribute('data-dir');drive(d);if(d!=='s')driveTimer=setInterval(function(){drive(d);},250);}
+var dirs=document.querySelectorAll('[data-dir]'),i;if(window.PointerEvent){for(i=0;i<dirs.length;i++)dirs[i].addEventListener('pointerdown',pressDrive);window.addEventListener('pointerup',releaseDrive);window.addEventListener('pointercancel',releaseDrive);}else{for(i=0;i<dirs.length;i++){dirs[i].addEventListener('touchstart',pressDrive,{passive:false});dirs[i].addEventListener('mousedown',pressDrive);}window.addEventListener('touchend',releaseDrive);window.addEventListener('mouseup',releaseDrive);}
+speed.oninput=function(){speedText.textContent=speed.value;};var presets=document.querySelectorAll('[data-speed]');for(i=0;i<presets.length;i++)presets[i].onclick=function(){speed.value=this.getAttribute('data-speed');speedText.textContent=speed.value;};
+function setServo(joint,us){var ch=joint.getAttribute('data-channel'),slider=joint.querySelector('input'),value=joint.querySelector('.value');us=Math.max(500,Math.min(2500,us));slider.value=us;value.textContent=us+' µs';get('/api/servo?ch='+ch+'&us='+us,function(code){if(code===200)show('Servo command accepted: J'+(['3','4','5','9'][ch])+' = '+us+' µs',false);else show('Servo command rejected',true);});}
+var joints=document.querySelectorAll('.joint');for(i=0;i<joints.length;i++){(function(j){var s=j.querySelector('input');s.onchange=function(){setServo(j,parseInt(s.value,10));};j.querySelector('.minus').onclick=function(){setServo(j,parseInt(s.value,10)-10);};j.querySelector('.plus').onclick=function(){setServo(j,parseInt(s.value,10)+10);};})(joints[i]);}
+function centerUI(){for(var k=0;k<joints.length;k++){joints[k].querySelector('input').value=1500;joints[k].querySelector('.value').textContent='1500 µs';}}
+function swing(type){get('/api/swing?type='+type,function(code){if(code===200){if(type==='center')centerUI();show(type==='center'?'All servos centered and holding':'Swing started — it will return to center',false);}else show('Swing is already running',true);});}
+document.getElementById('center').onclick=function(){swing('center');};document.getElementById('smallSwing').onclick=function(){swing('small');};document.getElementById('mainSwing').onclick=function(){swing('main');};
+var piAddress=document.getElementById('piAddress'),camera=document.getElementById('camera');document.getElementById('connectCamera').onclick=function(){var a=piAddress.value.replace(/^https?:\/\//,'').replace(/\/$/,'');localStorage.setItem('picklePi',a);camera.src='http://'+a+'/stream?'+Date.now();};var saved=localStorage.getItem('picklePi');if(saved)piAddress.value=saved;
+document.addEventListener('visibilitychange',function(){if(document.hidden)releaseDrive();});window.addEventListener('pagehide',releaseDrive);drive('s');
+</script></body></html>
