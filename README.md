@@ -1,67 +1,72 @@
-# Pickleball Robot
+# Autonomous Pickleball Robot
 
-This repository contains the current electronics design and control software for the pickleball robot.
+An autonomous mobile robot designed to rally with a human player. The robot combines computer vision, custom electronics, motor control, and a multi-axis paddle mechanism to detect a pickleball, move into position, and return it across the court.
 
-## Repository layout
+This project is being built from the ground up, including the mechanical system, custom PCB, embedded firmware, vision pipeline, and control software.
+
+## The idea
+
+Most pickleball machines launch balls from one fixed position. This robot is designed to behave more like another player:
+
+- See and track the incoming pickleball with a camera
+- Use YOLO-based object detection to locate the ball in real time
+- Estimate the ball's movement and expected interception point
+- Drive left, right, forward, or backward to line up with the shot
+- Control the paddle angle and swing timing with multiple servos
+- Return the ball and reset for the next shot
+
+The long-term goal is a robot that can rally autonomously instead of only feeding balls.
+
+## How it works
 
 ```text
-.
-|-- cad/                    # Reserved for future CAD source files
-|-- firmware/
-|   |-- esp32/              # ESP-IDF motor, servo, Wi-Fi, and web controller
-|   `-- raspberry_pi/       # Camera stream and USB-serial bridge service
-`-- pcb/                    # Current KiCad schematic, board, and project files
+Camera
+   |
+   v
+Raspberry Pi + YOLO vision
+   |
+   |  Ball position and robot commands
+   v
+ESP32 real-time controller
+   |
+   +----> Drive motors
+   +----> Camera positioning
+   +----> Paddle tilt
+   +----> Main swing mechanism
+   `----> Wrist / paddle angle
 ```
 
-Generated manufacturing outputs, temporary files, build artifacts, old controller designs, and superseded experiments are intentionally excluded.
+The Raspberry Pi handles camera processing and high-level decisions. The ESP32 handles the time-sensitive hardware control, including the wheel motors, servo positions, swing sequences, and safety watchdog.
 
-## ESP32 firmware
+## Project highlights
 
-The ESP32 firmware provides:
+- Custom-designed KiCad PCB for the robot's electronics
+- ESP32 firmware written with ESP-IDF
+- Raspberry Pi camera and command service
+- Phone-based Wi-Fi controls for manual driving and mechanism testing
+- Four independently controlled servo axes
+- Differential-drive chassis control
+- Automatic wheel shutdown if commands are lost
+- Physical emergency-stop support
+- YOLO-based ball detection and autonomous positioning under development
 
-- Wi-Fi access point and phone-based drive controls
-- Left and right wheel-motor control
-- Four servo outputs
-- Coordinated swing commands
-- USB serial control for the Raspberry Pi
-- A command watchdog that stops the wheels if control is lost
+## Current status
 
-Requirements:
+This is an active prototype. The custom controller, drive system, servo controls, Wi-Fi interface, Raspberry Pi communication, and paddle sequences are implemented. The next major stage is integrating and tuning the YOLO vision pipeline for reliable ball tracking, interception, and autonomous returns.
 
-- ESP-IDF 5.3.1
-- Target: ESP32 / ESP32-PICO-D4
-- Default serial port in the current instructions: `COM6`
+## Technology
 
-Build and flash from an ESP-IDF terminal:
+- **Computer vision:** YOLO, OpenCV, Raspberry Pi camera
+- **High-level control:** Raspberry Pi and Python
+- **Real-time control:** ESP32-PICO-D4 and ESP-IDF
+- **Electronics:** Custom PCB designed in KiCad
+- **Motion:** DC drive motors and multi-axis servo paddle mechanism
+- **Interface:** Onboard Wi-Fi control page and USB serial communication
 
-```powershell
-cd firmware/esp32
-idf.py -p COM6 build flash monitor
-```
+## Engineering challenges
 
-See [`firmware/esp32/README.md`](firmware/esp32/README.md) for pin assignments, controls, and serial commands.
-
-## Raspberry Pi service
-
-The Raspberry Pi service exposes the Pi camera stream and forwards HTTP control commands to the ESP32 over USB serial.
-
-See [`firmware/raspberry_pi/README.md`](firmware/raspberry_pi/README.md) for details.
-
-## PCB design
-
-Open [`pcb/my turn.kicad_pro`](pcb/my%20turn.kicad_pro) in KiCad. The PCB folder includes:
-
-- `my turn.kicad_pro` — KiCad project
-- `my turn.kicad_sch` — schematic source
-- `my turn.kicad_pcb` — PCB layout source
-- `fp-lib-table` and `Custom.pretty/` — required local footprint library
-
-Fabrication files are not checked in. Generate fresh Gerbers, drill files, placement data, and BOM files from the current KiCad sources when preparing a board revision.
-
-## CAD
-
-The `cad/` directory is reserved for future mechanical source files. Keep editable CAD sources here rather than generated previews or temporary exports.
+The hardest parts of the project are detecting a small, fast-moving ball, predicting where it will arrive, moving the robot quickly enough to intercept it, and coordinating several joints into a repeatable return stroke. The design also has to handle vibration, impact loading, electrical noise, changing lighting, and safe testing around a fast-moving paddle.
 
 ## Safety
 
-Keep the physical emergency stop accessible during testing. Verify servo limits with the mechanism unloaded, keep clear of the swing mechanism, and test wheel direction at low power after firmware or wiring changes.
+The robot contains high-current motors and a fast swing mechanism. Keep the emergency stop accessible, test new movements at reduced power, and stay clear of the paddle while the system is energized.
